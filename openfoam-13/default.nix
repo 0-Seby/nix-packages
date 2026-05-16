@@ -215,11 +215,8 @@ stdenv.mkDerivation {
       fi
     done
 
-    echo "Generating standalone openfoam-shell entrypoint..."
-    cat > "$out/bin/openfoam-shell" <<EOF
-#!${bash}/bin/bash
-set -euo pipefail
-
+    echo "Generating universal environment initialization script..."
+    cat > "$out/bin/openfoam-init" <<EOF
 export FOAM_INST_DIR="$out"
 export WM_PROJECT_INST_DIR="$out"
 export WM_PROJECT_DIR="$out"
@@ -229,23 +226,32 @@ export MPI_HOME="${mpi}"
 export PV_PLUGIN_PATH="$out/platforms/$WM_OPTIONS/lib/paraview-${pvMajorMinor}"
 
 export PATH="$out/bin:${lib.makeBinPath [
-  (lib.getDev mpi)
-  mpi
-  paraview
-  gnuplot
-  coreutils
-  findutils
-  gawk
-  gnused
-  gnumake
-  stdenv.cc
+  (lib.getDev mpi) mpi paraview gnuplot coreutils findutils gawk gnused gnumake stdenv.cc
 ]}:\$PATH"
 
-TMP_RC=\$(mktemp)
-echo "source \"$out/etc/bashrc\"" > "\$TMP_RC"
-echo "rm -f \"\$TMP_RC\"" >> "\$TMP_RC"
+# Safely source the core OpenFOAM bashrc
+set +u
+source "$out/etc/bashrc"
+set -u
+EOF
+    chmod +x "$out/bin/openfoam-init"
 
-exec ${bash}/bin/bash --noprofile --rcfile "\$TMP_RC" -i
+    echo "Generating dual-mode openfoam-shell entrypoint..."
+    cat > "$out/bin/openfoam-shell" <<EOF
+#!${bash}/bin/bash
+set -euo pipefail
+
+if [ \$# -eq 0 ]; then
+    # Mode 1: Interactive Shell (Human use)
+    TMP_RC=\$(mktemp)
+    echo "source \"$out/bin/openfoam-init\"" > "\$TMP_RC"
+    echo "rm -f \"\$TMP_RC\"" >> "\$TMP_RC"
+    exec ${bash}/bin/bash --noprofile --rcfile "\$TMP_RC" -i
+else
+    # Mode 2: Non-Interactive Execution (Python / Automation use)
+    source "$out/bin/openfoam-init"
+    exec "\$@"
+fi
 EOF
     chmod +x "$out/bin/openfoam-shell"
   '';
