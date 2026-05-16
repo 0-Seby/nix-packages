@@ -232,7 +232,7 @@ export PATH="$out/bin:${lib.makeBinPath [
 # Safely source the core OpenFOAM bashrc
 set +u
 source "$out/etc/bashrc"
-set -u
+set +u
 EOF
     chmod +x "$out/bin/openfoam-init"
 
