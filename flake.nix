@@ -15,6 +15,7 @@
           pkgs = nixpkgs.legacyPackages.${system};
         in {
           openfoam-13 = pkgs.callPackage ./openfoam-13/default.nix { };
+          foamlib = pkgs.python3Packages.callPackage ./foamlib/default.nix { };
           default = self.packages.${system}.openfoam-13;
         }
       );
