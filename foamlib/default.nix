@@ -1,4 +1,4 @@
-{ buildPythonPackage, fetchPypi, setuptools, wheel, numpy }:
+{ buildPythonPackage, fetchPypi, uv-build, numpy }:
 
 buildPythonPackage rec {
   pname = "foamlib";
@@ -10,7 +10,8 @@ buildPythonPackage rec {
     hash = "sha256-O2O6IP/ry7sPI66074Ah+qx1deX4V+ieB99+FRyInNw=";
   };
 
-  nativeBuildInputs = [ setuptools wheel ];
+  nativeBuildInputs = [ uv-build ];
+  
   propagatedBuildInputs = [ numpy ];
   
   doCheck = false;
