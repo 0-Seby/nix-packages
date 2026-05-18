@@ -1,4 +1,4 @@
-{ buildPythonPackage, fetchPypi, uv-build, numpy }:
+{ buildPythonPackage, fetchPypi, uv-build, numpy, aioshutil, multicollections, rich }:
 
 buildPythonPackage rec {
   pname = "foamlib";
@@ -11,8 +11,9 @@ buildPythonPackage rec {
   };
 
   nativeBuildInputs = [ uv-build ];
-  
-  propagatedBuildInputs = [ numpy ];
-  
+
+  # Add the missing runtime dependencies here
+  propagatedBuildInputs = [ numpy aioshutil multicollections rich ];
+
   doCheck = false;
 }
