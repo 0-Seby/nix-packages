@@ -1,6 +1,11 @@
 {
   description = "My Team's Custom Nix Packages";
 
+  nixConfig = {
+    extra-substituters = [ "https://seby.cachix.org" ];
+    extra-trusted-public-keys = [ "seby.cachix.org-1:Vych8bxZ7KpUVrz2GELTegGr7th/kdAWHfzVVENyocc=" ];
+  };
+
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
   outputs = { self, nixpkgs }:
@@ -16,7 +21,6 @@
         in {
           openfoam-13 = pkgs.callPackage ./openfoam-13/default.nix { };
           foamlib = pkgs.python3Packages.callPackage ./foamlib/default.nix { };
-          default = self.packages.${system}.openfoam-13;
         }
       );
 
