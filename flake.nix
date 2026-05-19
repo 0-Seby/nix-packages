@@ -1,44 +1,49 @@
 {
   description = "My Team's Custom Nix Packages";
 
-  nixConfig = {
-    extra-substituters = [ "https://seby.cachix.org" ];
-    extra-trusted-public-keys = [ "seby.cachix.org-1:Vych8bxZ7KpUVrz2GELTegGr7th/kdAWHfzVVENyocc=" ];
-  };
-
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
 
-  outputs = { self, nixpkgs }:
+  outputs =
+    { self, nixpkgs }:
     let
-      supportedSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
-      
+      supportedSystems = [ "x86_64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
-    in {
-      
-      packages = forAllSystems (system:
-        let 
-          pkgs = nixpkgs.legacyPackages.${system};
-        in rec {
-          openfoam-13 = pkgs.callPackage ./openfoam-13/default.nix { };
 
-          multicollections = pkgs.python3Packages.callPackage ./multicollections/default.nix { };
-          
-          foamlib = pkgs.python3Packages.callPackage ./foamlib/default.nix { 
-            multicollections = multicollections; 
+      overlay = final: prev: {
+        python3 = prev.python3.override {
+          packageOverrides = pyFinal: pyPrev: {
+            CoolProp = pyFinal.callPackage ./coolprop/default.nix { };
           };
+        };
+      };
+    in
+    {
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ overlay ];
+          };
+        in
+        {
+          coolprop = pkgs.python3Packages.CoolProp;
         }
       );
 
-      devShells = forAllSystems (system:
-        let 
-          pkgs = nixpkgs.legacyPackages.${system};
-        in {
+      devShells = forAllSystems (
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ overlay ];
+          };
+        in
+        {
           default = pkgs.mkShell {
             packages = [
-              self.packages.${system}.openfoam-13
-              
               (pkgs.python3.withPackages (ps: [
-                self.packages.${system}.foamlib
+                ps.CoolProp
                 ps.numpy
                 ps.rich
               ]))
@@ -46,6 +51,5 @@
           };
         }
       );
-
     };
 }
