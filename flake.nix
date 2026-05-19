@@ -43,8 +43,8 @@
         let pkgs = pkgsFor system;
         in {
           openfoam-13 = pkgs.callPackage ./openfoam-13/default.nix { };
-          multicollections = pkgs.python3Packages.multicollections;
-          foamlib = pkgs.python3Packages.foamlib;
+          multicollections = pkgs.python3.pkgs.multicollections;
+          foamlib = pkgs.python3.pkgs.foamlib;
           coolprop = pkgs.python3.pkgs.CoolProp;
         }
       );
