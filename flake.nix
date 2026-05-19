@@ -8,7 +8,8 @@
 
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
 
-  outputs = { self, nixpkgs }:
+  outputs =
+    { self, nixpkgs }:
     let
       systems = [
         "x86_64-linux"
@@ -33,15 +34,34 @@
         };
       };
 
-      pkgsFor = system: import nixpkgs {
-        inherit system;
-        overlays = [ overlay ];
-      };
+      pkgsFor =
+        system:
+        import nixpkgs {
+          inherit system;
+          overlays = [ overlay ];
+        };
+
+      pythonTestEnv =
+        system:
+        let
+          pkgs = pkgsFor system;
+        in
+        pkgs.python3.withPackages (ps: [
+          ps.numpy
+          ps.rich
+          ps.foamlib
+          ps.multicollections
+          ps.CoolProp
+        ]);
+
     in
     {
-      packages = forAllSystems (system:
-        let pkgs = pkgsFor system;
-        in {
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = pkgsFor system;
+        in
+        {
           openfoam-13 = pkgs.callPackage ./openfoam-13/default.nix { };
           multicollections = pkgs.python3.pkgs.multicollections;
           foamlib = pkgs.python3.pkgs.foamlib;
@@ -49,9 +69,12 @@
         }
       );
 
-      devShells = forAllSystems (system:
-        let pkgs = pkgsFor system;
-        in {
+      devShells = forAllSystems (
+        system:
+        let
+          pkgs = pkgsFor system;
+        in
+        {
           default = pkgs.mkShell {
             packages = [
               self.packages.${system}.openfoam-13
@@ -66,5 +89,33 @@
           };
         }
       );
+
+      checks = forAllSystems (
+        system:
+        let
+          pkgs = pkgsFor system;
+          python = pythonTestEnv system;
+        in
+        {
+          python-imports = pkgs.stdenv.mkDerivation {
+            name = "python-import-checks";
+
+            buildInputs = [ python ];
+
+            dontUnpack = true;
+
+            buildPhase = ''
+              echo "Running Python import tests..."
+              ${python}/bin/python ${./tests/imports.py}
+            '';
+
+            installPhase = ''
+              mkdir -p $out
+              touch $out/done
+            '';
+          };
+        }
+      );
     };
+
 }
