@@ -4,7 +4,7 @@ buildPythonPackage rec {
   pname = "multicollections";
   version = "1.0.8"; 
 
-  format = "pyproject"; 
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
