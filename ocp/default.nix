@@ -74,6 +74,10 @@ toPythonModule (
       cp OCP*.so $out/${python.sitePackages}/
     '';
 
+    env = {
+      NIX_LDFLAGS = "-lfmt";
+    };
+
     meta = with lib; {
       description = "Python bindings for OpenCASCADE Technology (OCCT)";
       homepage = "https://github.com/CadQuery/OCP";
