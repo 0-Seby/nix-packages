@@ -34,11 +34,11 @@
 
       # Main Overlay
       overlay = final: prev: {
-        vtk =
+        # Bootstrap VTK: stripped, only used to build OCCT. Breaks the cycle.
+        vtk-for-occt =
           (prev.vtk.override {
             opencascade-occt = null;
-            pythonSupport = true;
-            python3Packages = prev.python3Packages;
+            pythonSupport = false;
           }).overrideAttrs
             (old: {
               postPatch = (old.postPatch or "") + ''
@@ -46,8 +46,18 @@
               '';
             });
 
+        # The real VTK everything else uses: OCCT support + Python wrapping.
+        vtk = prev.vtk.override {
+          pythonSupport = true;
+          # opencascade-occt input is picked up automatically from final scope
+          # (which is your custom OCCT, built against vtk-for-occt above)
+        };
+
+        opencascade-occt = final.callPackage ./opencascade-occt/default.nix {
+          vtk = final.vtk-for-occt;
+        };
+
         openfoam-13 = final.callPackage ./openfoam-13/default.nix { };
-        opencascade-occt = final.callPackage ./opencascade-occt/default.nix { };
         ocp-generate = final.callPackage ./ocp-generate/default.nix { };
 
         python3 = prev.python3.override {
