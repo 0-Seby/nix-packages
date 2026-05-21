@@ -3,21 +3,23 @@
   fetchFromGitHub,
   setuptools,
   wheel,
+  trame-server,
+  trame-client,
   trame-common,
   wslink,
   pyyaml,
-  hatchling,
+  pythonNamespacesHook,
 }:
 
 buildPythonPackage rec {
-  pname = "trame-client";
-  version = "3.12.2";
+  pname = "trame";
+  version = "3.13.2";
 
   src = fetchFromGitHub {
     owner = "Kitware";
-    repo = "trame-client";
+    repo = "trame";
     rev = "v${version}";
-    hash = "sha256-pLBeTb0Kf97VbWlfb6BJfJ43kE4t+rt/zgPtlflzT2Q=";
+    hash = "sha256-g3A12JavsmCVleadIphrj6XtokEE0qnZTHiJ0XVCXmc=";
   };
 
   format = "pyproject";
@@ -25,14 +27,24 @@ buildPythonPackage rec {
   nativeBuildInputs = [
     setuptools
     wheel
-    hatchling
   ];
 
   # This fixes your "not installed" error
   propagatedBuildInputs = [
+    trame-server
+    trame-client
     trame-common
     wslink
     pyyaml
+    pythonNamespacesHook
+  ];
+
+  pythonNamespaces = [
+    "trame"
+    "trame/ui"
+    "trame/widgets"
+    "trame/modules"
+    "trame/tools"
   ];
 
   doCheck = false;

@@ -8,17 +8,19 @@
   trame-common,
   wslink,
   pyyaml,
+  hatchling,
+  pythonNamespacesHook,
 }:
 
 buildPythonPackage rec {
-  pname = "trame";
-  version = "3.13.2";
+  pname = "trame-vuetify";
+  version = "3.2.2";
 
   src = fetchFromGitHub {
     owner = "Kitware";
-    repo = "trame";
+    repo = "trame-vuetify";
     rev = "v${version}";
-    hash = "sha256-g3A12JavsmCVleadIphrj6XtokEE0qnZTHiJ0XVCXmc=";
+    hash = "sha256-kanJCwy4mYl16+RG1rucAzJvbbbxV7lpVHAJHlfQaAs=";
   };
 
   format = "pyproject";
@@ -26,6 +28,8 @@ buildPythonPackage rec {
   nativeBuildInputs = [
     setuptools
     wheel
+    hatchling
+    pythonNamespacesHook
   ];
 
   # This fixes your "not installed" error
@@ -37,5 +41,12 @@ buildPythonPackage rec {
     pyyaml
   ];
 
-  doCheck = false;
+  pythonNamespaces = [
+    "trame"
+    "trame/ui"
+    "trame/widgets"
+    "trame/modules"
+  ];
+
+  doCheck = true;
 }

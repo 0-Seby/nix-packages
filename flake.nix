@@ -20,7 +20,8 @@
       forAllSystems = nixpkgs.lib.genAttrs systems;
 
       # == Python Overlay ==
-      pythonPackagesOverlay = pyFinal: pyPrev: 
+      pythonPackagesOverlay =
+        pyFinal: pyPrev:
         let
           customPkgs = {
             multicollections = pyFinal.callPackage ./multicollections/default.nix { };
@@ -38,7 +39,8 @@
             trame = pyFinal.callPackage ./trame/default.nix { };
           };
         in
-        customPkgs // {
+        customPkgs
+        // {
           customPackagesList = builtins.attrValues customPkgs;
           customPackageNames = builtins.attrNames customPkgs;
         };
@@ -86,10 +88,14 @@
         let
           pkgs = pkgsFor system;
         in
-        pkgs.python3.withPackages (ps: ps.customPackagesList ++ [
-          ps.numpy
-          ps.rich
-        ]);
+        pkgs.python3.withPackages (
+          ps:
+          ps.customPackagesList
+          ++ [
+            ps.numpy
+            ps.rich
+          ]
+        );
 
     in
     {
@@ -109,7 +115,7 @@
         in
         {
           inherit (pkgs) openfoam-13 opencascade-occt ocp-generate;
-        } 
+        }
         // pkgs.lib.getAttrs pkgs.python3.pkgs.customPackageNames pkgs.python3.pkgs
       );
 
@@ -122,10 +128,14 @@
           default = pkgs.mkShell {
             packages = [
               pkgs.openfoam-13
-              (pkgs.python3.withPackages (ps: ps.customPackagesList ++ [
-                ps.numpy
-                ps.rich
-              ]))
+              (pkgs.python3.withPackages (
+                ps:
+                ps.customPackagesList
+                ++ [
+                  ps.numpy
+                  ps.rich
+                ]
+              ))
             ];
 
             shellHook = ''
