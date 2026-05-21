@@ -26,9 +26,6 @@
   scipy,
   numba,
   trame,
-  trame-vtk,
-  trame-components,
-  trame-vuetify,
 }:
 
 let
@@ -91,9 +88,6 @@ buildPythonPackage rec {
     scipy
     numba
     trame
-    trame-vtk
-    trame-components
-    trame-vuetify
   ];
 
   FONTCONFIG_FILE = makeFontsConf {

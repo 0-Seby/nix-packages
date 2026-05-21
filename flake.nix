@@ -34,6 +34,8 @@
             ocp = pyFinal.callPackage ./ocp/default.nix { };
 
             cadquery = pyFinal.callPackage ./cadquery/default.nix { };
+
+            trame = pyFinal.callPackage ./trame/default.nix { };
           };
         in
         customPkgs // {
