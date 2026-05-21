@@ -36,7 +36,21 @@
 
             cadquery = pyFinal.callPackage ./cadquery/default.nix { };
 
-            trame = pyFinal.callPackage ./trame/default.nix { };
+            wslink = pyFinal.callPackage ./trame/wslink.nix { };
+
+            trame-common = pyFinal.callPackage ./trame/trame-common.nix { };
+
+            trame-server = pyFinal.callPackage ./trame/trame-server.nix { };
+
+            trame-client = pyFinal.callPackage ./trame/trame-client.nix { };
+
+            trame-vtk = pyFinal.callPackage ./trame/trame-vtk.nix { };
+
+            trame-vuetify = pyFinal.callPackage ./trame/trame-vuetify.nix { };
+
+            trame-components = pyFinal.callPackage ./trame/trame-components.nix { };
+
+            trame = pyFinal.callPackage ./trame/trame.nix { };
           };
         in
         customPkgs

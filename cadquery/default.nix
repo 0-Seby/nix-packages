@@ -26,6 +26,12 @@
   scipy,
   numba,
   trame,
+  trame-vtk,
+  trame-components,
+  trame-vuetify,
+  aiohttp,
+  msgpack,
+  more-itertools,
 }:
 
 let
@@ -88,6 +94,12 @@ buildPythonPackage rec {
     scipy
     numba
     trame
+    trame-vtk
+    trame-components
+    trame-vuetify
+    aiohttp
+    msgpack
+    more-itertools
   ];
 
   FONTCONFIG_FILE = makeFontsConf {
@@ -109,9 +121,10 @@ buildPythonPackage rec {
   '';
 
   pytestFlags = [
-    "-W" "ignore::FutureWarning"
-    "-v"          # Verbose: this will print every test it finds to the log
-    "tests"       # Explicitly point to the tests folder
+    "-W"
+    "ignore::FutureWarning"
+    "-v" # Verbose: this will print every test it finds to the log
+    "tests" # Explicitly point to the tests folder
   ];
 
   meta = with lib; {
