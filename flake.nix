@@ -1,10 +1,13 @@
 {
   description = "My Team's Custom Nix Packages";
+
   nixConfig = {
     extra-substituters = [ "https://seby.cachix.org" ];
     extra-trusted-public-keys = [ "seby.cachix.org-1:Vych8bxZ7KpUVrz2GELTegGr7th/kdAWHfzVVENyocc=" ];
   };
+
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+
   outputs =
     { self, nixpkgs }:
     let
@@ -16,6 +19,7 @@
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
 
+      # Python Overlay
       pythonPackagesOverlay = pyFinal: pyPrev: {
         multicollections = pyFinal.callPackage ./multicollections/default.nix { };
 
@@ -23,12 +27,31 @@
           multicollections = pyFinal.multicollections;
         };
 
-        CoolProp = pyFinal.callPackage ./coolprop/default.nix { };
+        coolprop = pyFinal.callPackage ./coolprop/default.nix { };
+
+        ocp = pyFinal.callPackage ./ocp/default.nix { };
       };
 
+      # Main Overlay
       overlay = final: prev: {
+        vtk =
+          (prev.vtk.override {
+            opencascade-occt = null;
+            pythonSupport = true;
+            python3Packages = prev.python3Packages;
+          }).overrideAttrs
+            (old: {
+              postPatch = (old.postPatch or "") + ''
+                rm -rf IO/OCCT
+              '';
+            });
+
+        openfoam-13 = final.callPackage ./openfoam-13/default.nix { };
+        opencascade-occt = final.callPackage ./opencascade-occt/default.nix { };
+        ocp-generate = final.callPackage ./ocp-generate/default.nix { };
+
         python3 = prev.python3.override {
-          packageOverrides = pythonPackagesOverlay;
+          packageOverrides = pyFinal: pyPrev: (pythonPackagesOverlay pyFinal pyPrev);
         };
       };
 
@@ -49,8 +72,10 @@
           ps.rich
           ps.foamlib
           ps.multicollections
-          ps.CoolProp
+          ps.coolprop
+          ps.ocp
         ]);
+
     in
     {
       overlays = {
@@ -58,21 +83,29 @@
       };
 
       lib = {
-        pythonPackagesOverlay = pythonPackagesOverlay;
+        inherit pythonPackagesOverlay;
       };
 
+      # Exporter
       packages = forAllSystems (
         system:
         let
           pkgs = pkgsFor system;
         in
         {
-          openfoam-13 = pkgs.callPackage ./openfoam-13/default.nix { };
-          multicollections = pkgs.python3.pkgs.multicollections;
-          foamlib = pkgs.python3.pkgs.foamlib;
-          coolprop = pkgs.python3.pkgs.CoolProp;
+          # Top-level packages
+          inherit (pkgs) openfoam-13 opencascade-occt ocp-generate;
+
+          # Python packages
+          inherit (pkgs.python3.pkgs)
+            multicollections
+            foamlib
+            coolprop
+            ocp
+            ;
         }
       );
+
       devShells = forAllSystems (
         system:
         let
@@ -81,18 +114,20 @@
         {
           default = pkgs.mkShell {
             packages = [
-              self.packages.${system}.openfoam-13
+              pkgs.openfoam-13
               (pkgs.python3.withPackages (ps: [
                 ps.multicollections
                 ps.foamlib
-                ps.CoolProp
+                ps.coolprop
                 ps.numpy
                 ps.rich
+                ps.ocp
               ]))
             ];
           };
         }
       );
+
       checks = forAllSystems (
         system:
         let

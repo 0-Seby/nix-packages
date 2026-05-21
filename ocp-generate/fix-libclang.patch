@@ -1,0 +1,13 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -54,3 +54,9 @@
+ message( STATUS "Include dirs: ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES}")
+ get_target_property( LIBCLANG_PATH libclang IMPORTED_LOCATION_RELEASE )
++if(NOT LIBCLANG_PATH)
++  get_target_property( LIBCLANG_PATH libclang IMPORTED_LOCATION )
++endif()
++if(NOT LIBCLANG_PATH)
++  message(FATAL_ERROR "Could not determine libclang path from CMake targets")
++endif()
+ message( STATUS "Include dirs: ${VTK_INCLUDE_DIR}")
+
