@@ -19,20 +19,29 @@
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
 
-      # Python Overlay
-      pythonPackagesOverlay = pyFinal: pyPrev: {
-        multicollections = pyFinal.callPackage ./multicollections/default.nix { };
+      # == Python Overlay ==
+      pythonPackagesOverlay = pyFinal: pyPrev: 
+        let
+          customPkgs = {
+            multicollections = pyFinal.callPackage ./multicollections/default.nix { };
 
-        foamlib = pyFinal.callPackage ./foamlib/default.nix {
-          multicollections = pyFinal.multicollections;
+            foamlib = pyFinal.callPackage ./foamlib/default.nix {
+              multicollections = pyFinal.multicollections;
+            };
+
+            coolprop = pyFinal.callPackage ./coolprop/default.nix { };
+
+            ocp = pyFinal.callPackage ./ocp/default.nix { };
+
+            cadquery = pyFinal.callPackage ./cadquery/default.nix { };
+          };
+        in
+        customPkgs // {
+          customPackagesList = builtins.attrValues customPkgs;
+          customPackageNames = builtins.attrNames customPkgs;
         };
 
-        coolprop = pyFinal.callPackage ./coolprop/default.nix { };
-
-        ocp = pyFinal.callPackage ./ocp/default.nix { };
-      };
-
-      # Main Overlay
+      # == Main Overlay ==
       overlay = final: prev: {
         # Bootstrap VTK: stripped, only used to build OCCT. Breaks the cycle.
         vtk-for-occt =
@@ -49,8 +58,6 @@
         # The real VTK everything else uses: OCCT support + Python wrapping.
         vtk = prev.vtk.override {
           pythonSupport = true;
-          # opencascade-occt input is picked up automatically from final scope
-          # (which is your custom OCCT, built against vtk-for-occt above)
         };
 
         opencascade-occt = final.callPackage ./opencascade-occt/default.nix {
@@ -77,13 +84,9 @@
         let
           pkgs = pkgsFor system;
         in
-        pkgs.python3.withPackages (ps: [
+        pkgs.python3.withPackages (ps: ps.customPackagesList ++ [
           ps.numpy
           ps.rich
-          ps.foamlib
-          ps.multicollections
-          ps.coolprop
-          ps.ocp
         ]);
 
     in
@@ -96,24 +99,16 @@
         inherit pythonPackagesOverlay;
       };
 
-      # Exporter
+      # == Exporter ==
       packages = forAllSystems (
         system:
         let
           pkgs = pkgsFor system;
         in
         {
-          # Top-level packages
           inherit (pkgs) openfoam-13 opencascade-occt ocp-generate;
-
-          # Python packages
-          inherit (pkgs.python3.pkgs)
-            multicollections
-            foamlib
-            coolprop
-            ocp
-            ;
-        }
+        } 
+        // pkgs.lib.getAttrs pkgs.python3.pkgs.customPackageNames pkgs.python3.pkgs
       );
 
       devShells = forAllSystems (
@@ -125,15 +120,20 @@
           default = pkgs.mkShell {
             packages = [
               pkgs.openfoam-13
-              (pkgs.python3.withPackages (ps: [
-                ps.multicollections
-                ps.foamlib
-                ps.coolprop
+              (pkgs.python3.withPackages (ps: ps.customPackagesList ++ [
                 ps.numpy
                 ps.rich
-                ps.ocp
               ]))
             ];
+
+            shellHook = ''
+              # source the OpenFOAM initialization script
+              if [ -f "${pkgs.openfoam-13}/bin/openfoam-init" ]; then
+                source "${pkgs.openfoam-13}/bin/openfoam-init"
+              else
+                echo "Warning: Could not automatically locate OpenFOAM shell initialization script."
+              fi
+            '';
           };
         }
       );

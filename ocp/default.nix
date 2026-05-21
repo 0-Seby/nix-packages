@@ -72,6 +72,18 @@ toPythonModule (
     installPhase = ''
       mkdir -p $out/${python.sitePackages}
       cp OCP*.so $out/${python.sitePackages}/
+
+      # Generate standard PEP 566 dist-info metadata so Python tools recognize it.
+      # We name it 'cadquery-ocp' so it natively satisfies CadQuery's setup.py requirements.
+      DIST_INFO="$out/${python.sitePackages}/cadquery_ocp-${version}.dist-info"
+      mkdir -p "$DIST_INFO"
+
+      cat > "$DIST_INFO/METADATA" <<EOF
+      Metadata-Version: 2.1
+      Name: cadquery-ocp
+      Version: ${version}
+      Summary: Python bindings for OpenCASCADE Technology (OCCT)
+      EOF
     '';
 
     env = {
