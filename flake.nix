@@ -31,34 +31,25 @@
             };
 
             coolprop = pyFinal.callPackage ./coolprop/default.nix { };
-
             pyfluids = pyFinal.callPackage ./pyfluids/default.nix { };
 
             pybind11-2 = pyFinal.callPackage ./pybind11-2/default.nix { };
+            pybind11-stubgen = pyFinal.callPackage ./pybind11-stubgen/default.nix { };
 
             ocp = pyFinal.callPackage ./ocp/default.nix {
               pybind11 = pyFinal.pybind11-2;
             };
-
             cadquery = pyFinal.callPackage ./cadquery/default.nix { };
 
             wslink = pyFinal.callPackage ./trame/wslink.nix { };
 
             trame-common = pyFinal.callPackage ./trame/trame-common.nix { };
-
             trame-server = pyFinal.callPackage ./trame/trame-server.nix { };
-
             trame-client = pyFinal.callPackage ./trame/trame-client.nix { };
-
             trame-vtk = pyFinal.callPackage ./trame/trame-vtk.nix { };
-
             trame-vuetify = pyFinal.callPackage ./trame/trame-vuetify.nix { };
-
             trame-components = pyFinal.callPackage ./trame/trame-components.nix { };
-
             trame = pyFinal.callPackage ./trame/trame.nix { };
-
-            pybind11-stubgen = pyFinal.callPackage ./pybind11-stubgen/default.nix { };
           };
         in
         customPkgs
@@ -134,13 +125,23 @@
         system:
         let
           pkgs = pkgsFor system;
+
+          # 1. Define your exported packages EXACTLY ONCE here.
+          # Whenever you add a new package to your overlay, just add it to this list.
+          myPackages = {
+            inherit (pkgs) openfoam-13 opencascade-occt ocp-generate;
+          } // pkgs.lib.getAttrs pkgs.python3.pkgs.customPackageNames pkgs.python3.pkgs;
+
         in
-        {
-          inherit (pkgs) openfoam-13 opencascade-occt ocp-generate;
+        # 2. Return all your packages, PLUS the dynamic 'all' collector.
+        myPackages // {
+          all = pkgs.linkFarm "all-my-packages" (
+            pkgs.lib.mapAttrsToList (name: path: { inherit name path; }) myPackages
+          );
         }
-        // pkgs.lib.getAttrs pkgs.python3.pkgs.customPackageNames pkgs.python3.pkgs
       );
 
+      # == Development Shell ==
       devShells = forAllSystems (
         system:
         let
@@ -172,6 +173,7 @@
         }
       );
 
+      # == Checking the python packages ==
       checks = forAllSystems (
         system:
         let
