@@ -32,6 +32,8 @@
 
             coolprop = pyFinal.callPackage ./coolprop/default.nix { };
 
+            pyfluids = pyFinal.callPackage ./pyfluids/default.nix { };
+
             pybind11-2 = pyFinal.callPackage ./pybind11-2/default.nix { };
 
             ocp = pyFinal.callPackage ./ocp/default.nix {
