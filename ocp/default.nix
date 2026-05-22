@@ -72,8 +72,6 @@ toPythonModule (
       mkdir -p $out/${python.sitePackages}
       cp OCP*.so $out/${python.sitePackages}/
 
-      # --- Generate OCP-stubs from the freshly-built module ---
-      # pybind11-stubgen needs to import OCP; point PYTHONPATH at the install dir.
       export PYTHONPATH=$out/${python.sitePackages}:$PYTHONPATH
       export HOME=$(mktemp -d)
 
@@ -84,15 +82,17 @@ toPythonModule (
         OCP \
         || echo "pybind11-stubgen completed with warnings"
 
-      # PEP 561 marker — tells type checkers OCP-stubs/ is authoritative.
-      if [ -d $out/${python.sitePackages}/OCP-stubs ]; then
-        touch $out/${python.sitePackages}/OCP-stubs/py.typed
-        echo "Stubs generated successfully."
-      else
-        echo "WARNING: OCP-stubs directory was not created"
+      # Verify the run was actually complete, not aborted after one submodule.
+      STUB_COUNT=$(find $out/${python.sitePackages}/OCP-stubs -name '__init__.pyi' 2>/dev/null | wc -l)
+      echo "Generated $STUB_COUNT stub modules."
+      if [ "$STUB_COUNT" -lt 100 ]; then
+        echo "ERROR: stub generation appears to have crashed mid-run."
+        echo "Expected hundreds of submodules; got $STUB_COUNT."
+        exit 1
       fi
+      touch $out/${python.sitePackages}/OCP-stubs/py.typed
 
-      # --- Existing PEP 566 dist-info metadata ---
+      # Existing dist-info metadata
       DIST_INFO="$out/${python.sitePackages}/cadquery_ocp-${version}.dist-info"
       mkdir -p "$DIST_INFO"
       cat > "$DIST_INFO/METADATA" <<EOF

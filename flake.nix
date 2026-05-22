@@ -32,7 +32,11 @@
 
             coolprop = pyFinal.callPackage ./coolprop/default.nix { };
 
-            ocp = pyFinal.callPackage ./ocp/default.nix { };
+            pybind11-2 = pyFinal.callPackage ./pybind11-2/default.nix { };
+
+            ocp = pyFinal.callPackage ./ocp/default.nix {
+              pybind11 = pyFinal.pybind11-2;
+            };
 
             cadquery = pyFinal.callPackage ./cadquery/default.nix { };
 
