@@ -81,11 +81,11 @@ toPythonModule (
         OCP \
         || echo "pybind11-stubgen completed with warnings"
 
-      TOP_INIT=$out/${python.sitePackages}/OCP-stubs/__init__.pyi
-      for d in $out/${python.sitePackages}/OCP-stubs/*/; do
+      TOP_INIT="$out/${python.sitePackages}/OCP-stubs/__init__.pyi"
+      for d in "$out/${python.sitePackages}/OCP-stubs"/*/; do
         sub=$(basename "$d")
-        grep -q "from . import $sub" "$TOP_INIT" 2>/dev/null \
-          || echo "from . import $sub" >> "$TOP_INIT"
+        grep -qF "from . import $sub as $sub" "$TOP_INIT" \
+          || echo "from . import $sub as $sub" >> "$TOP_INIT"
       done
 
       # Verify the run was actually complete, not aborted after one submodule.
