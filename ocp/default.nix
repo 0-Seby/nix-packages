@@ -27,7 +27,7 @@ toPythonModule (
       cmake
       ninja
       python
-      pybind11-stubgen # <-- new; puts `pybind11-stubgen` on $PATH
+      pybind11-stubgen
     ];
 
     buildInputs = [
@@ -62,7 +62,6 @@ toPythonModule (
     ];
 
     enableParallelBuilding = true;
-    NIX_BUILD_CORES = "24";
 
     preConfigure = ''
       sed -i 's/find_package( VTK/find_package(OpenMP)\nfind_package( VTK/' CMakeLists.txt
@@ -81,6 +80,13 @@ toPythonModule (
         --no-setup-py \
         OCP \
         || echo "pybind11-stubgen completed with warnings"
+
+      TOP_INIT=$out/${python.sitePackages}/OCP-stubs/__init__.pyi
+      for d in $out/${python.sitePackages}/OCP-stubs/*/; do
+        sub=$(basename "$d")
+        grep -q "from . import $sub" "$TOP_INIT" 2>/dev/null \
+          || echo "from . import $sub" >> "$TOP_INIT"
+      done
 
       # Verify the run was actually complete, not aborted after one submodule.
       STUB_COUNT=$(find $out/${python.sitePackages}/OCP-stubs -name '__init__.pyi' 2>/dev/null | wc -l)
