@@ -51,6 +51,8 @@
             trame-components = pyFinal.callPackage ./trame/trame-components.nix { };
 
             trame = pyFinal.callPackage ./trame/trame.nix { };
+
+            ocp-stubs = pyFinal.callPackage ./ocp-stubs/default.nix { };
           };
         in
         customPkgs
