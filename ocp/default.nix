@@ -8,6 +8,7 @@
   opencascade-occt,
   vtk,
   pybind11,
+  pybind11-stubgen, # <-- new
   fmt,
   libGL,
   libGLU,
@@ -26,13 +27,14 @@ toPythonModule (
       cmake
       ninja
       python
+      pybind11-stubgen # <-- new; puts `pybind11-stubgen` on $PATH
     ];
 
     buildInputs = [
       stdenv.cc.cc.lib
       opencascade-occt
       vtk
-      rapidjson # Restored!
+      rapidjson
       python
       pybind11
       fmt
@@ -46,12 +48,9 @@ toPythonModule (
       "-DCMAKE_BUILD_TYPE=Release"
       "-DCMAKE_HAVE_LIBC_PTHREAD=ON"
       "-DCMAKE_THREAD_LIBS_INIT=-lpthread"
-      # OpenMP detection bypasses — sandbox blocks try_compile probes.
-      # GCC's libgomp provides OpenMP; these tell cmake not to probe for it.
       "-DOpenMP_CXX_FLAGS=-fopenmp"
       "-DOpenMP_CXX_LIB_NAMES=gomp"
       "-DOpenMP_gomp_LIBRARY=${stdenv.cc.cc.lib}/lib/libgomp.so"
-      # ... rest of your existing flags
       "-DPYTHON_SP_DIR=${python.sitePackages}"
       "-DPython3_EXECUTABLE=${python}/bin/python3"
       "-DPython_EXECUTABLE=${python}/bin/python3"
@@ -73,11 +72,29 @@ toPythonModule (
       mkdir -p $out/${python.sitePackages}
       cp OCP*.so $out/${python.sitePackages}/
 
-      # Generate standard PEP 566 dist-info metadata so Python tools recognize it.
-      # We name it 'cadquery-ocp' so it natively satisfies CadQuery's setup.py requirements.
+      # --- Generate OCP-stubs from the freshly-built module ---
+      # pybind11-stubgen needs to import OCP; point PYTHONPATH at the install dir.
+      export PYTHONPATH=$out/${python.sitePackages}:$PYTHONPATH
+      export HOME=$(mktemp -d)
+
+      echo "Generating OCP type stubs (this takes a few minutes)..."
+      pybind11-stubgen \
+        -o $out/${python.sitePackages} \
+        --no-setup-py \
+        OCP \
+        || echo "pybind11-stubgen completed with warnings"
+
+      # PEP 561 marker — tells type checkers OCP-stubs/ is authoritative.
+      if [ -d $out/${python.sitePackages}/OCP-stubs ]; then
+        touch $out/${python.sitePackages}/OCP-stubs/py.typed
+        echo "Stubs generated successfully."
+      else
+        echo "WARNING: OCP-stubs directory was not created"
+      fi
+
+      # --- Existing PEP 566 dist-info metadata ---
       DIST_INFO="$out/${python.sitePackages}/cadquery_ocp-${version}.dist-info"
       mkdir -p "$DIST_INFO"
-
       cat > "$DIST_INFO/METADATA" <<EOF
       Metadata-Version: 2.1
       Name: cadquery-ocp

@@ -52,7 +52,7 @@
 
             trame = pyFinal.callPackage ./trame/trame.nix { };
 
-            ocp-stubs = pyFinal.callPackage ./ocp-stubs/default.nix { };
+            pybind11-stubgen = pyFinal.callPackage ./pybind11-stubgen/default.nix { };
           };
         in
         customPkgs
