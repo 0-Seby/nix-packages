@@ -1,0 +1,64 @@
+# ==========================================
+# Nix & Development Environments
+# ==========================================
+# Core Nix build symlinks
+result
+result-*
+
+# Our hidden protection folder for GC roots
+.gcroots/
+
+# direnv state (if you use use_flake / use_nix)
+.direnv/
+
+# ==========================================
+# Python & Packaging
+# ==========================================
+# Byte-compiled / optimized / cached files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging artifacts
+.eggs/
+doc/_build/
+dist/
+build/
+eggs/
+parts/
+bin/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+*.egg-info/
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ==========================================
+# Testing & Type Checking
+# ==========================================
+# Pytest and coverage
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Pyright / Mypy type-checking caches
+.mypy_cache/
+.pyright_cache/
+.dmypy.json
+dmypy.json
+
+# ==========================================
+# OS & Editor Clutter
+# ==========================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
