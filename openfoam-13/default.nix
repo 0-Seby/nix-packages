@@ -215,25 +215,92 @@ stdenv.mkDerivation {
       fi
     done
 
-    echo "Generating universal environment initialization script..."
-    cat > "$out/bin/openfoam-init" <<EOF
-export FOAM_INST_DIR="$out"
-export WM_PROJECT_INST_DIR="$out"
-export WM_PROJECT_DIR="$out"
-export MPI_ARCH_PATH="${mpi}"
-export MPI_HOME="${mpi}"
+    # -------------------------------------------------------------------
+    # Capture OpenFOAM's environment at build time so sourcing is fast.
+    #
+    # The upstream bashrc fork-execs hundreds of grep/sed/awk processes
+    # to dedupe PATH and probe for config files. On Nix every spawn cold-
+    # loads from /nix/store, which adds up to ~3 s per source. Since this
+    # derivation is deterministic, we run the bashrc once here and replay
+    # the result later with two cheap variable expansions.
+    # -------------------------------------------------------------------
 
-export PV_PLUGIN_PATH="$out/platforms/$WM_OPTIONS/lib/paraview-${pvMajorMinor}"
+    echo "Capturing OpenFOAM environment..."
 
-export PATH="$out/bin:${lib.makeBinPath [
-  (lib.getDev mpi) mpi paraview gnuplot coreutils findutils gawk gnused gnumake stdenv.cc
-]}:\$PATH"
+    fakeHome="$TMPDIR/of-cache-home"
+    fakeUser="__OPENFOAM_CACHED_USER__"
+    mkdir -p "$fakeHome"
 
-# Safely source the core OpenFOAM bashrc
-set +u
-source "$out/etc/bashrc"
-set +u
-EOF
+    env -i \
+      HOME="$fakeHome" \
+      USER="$fakeUser" \
+      LOGNAME="$fakeUser" \
+      TERM=dumb \
+      PATH="${lib.makeBinPath [ coreutils ]}" \
+      ${bash}/bin/bash -c "
+        set +u
+        exec 2>/dev/null
+        export FOAM_INST_DIR='$out'
+        export WM_PROJECT_INST_DIR='$out'
+        export WM_PROJECT_DIR='$out'
+        export MPI_ARCH_PATH='${mpi}'
+        export MPI_HOME='${mpi}'
+        export PATH='$out/bin:${lib.makeBinPath [
+          (lib.getDev mpi) mpi paraview gnuplot coreutils findutils gawk gnused gnumake stdenv.cc
+        ]}'
+        source '$out/etc/bashrc'
+        export PV_PLUGIN_PATH='$out/platforms/'\"\$WM_OPTIONS\"'/lib/paraview-${pvMajorMinor}'
+
+        printf '# --- exported variables ---\n'
+        declare -px
+        printf '\n# --- functions ---\n'
+        declare -f
+        printf '\n# --- aliases ---\n'
+        alias -p
+      " > "$TMPDIR/foam-env-raw.sh"
+
+    ${gnused}/bin/sed \
+      -e '/^declare -x HOME=/d' \
+      -e '/^declare -x USER=/d' \
+      -e '/^declare -x LOGNAME=/d' \
+      -e '/^declare -x TERM=/d' \
+      -e '/^declare -x PWD=/d' \
+      -e '/^declare -x OLDPWD=/d' \
+      -e '/^declare -x SHLVL=/d' \
+      -e '/^declare -x _=/d' \
+      -e "s|$fakeHome|\''${HOME}|g" \
+      -e "s|$fakeUser|\''${USER}|g" \
+      "$TMPDIR/foam-env-raw.sh" > "$out/etc/openfoam-env.sh"
+
+    echo "Generating fast openfoam-init..."
+    cat > "$out/bin/openfoam-init" <<INITEOF
+# Fast OpenFOAM environment loader.
+#
+# The full OpenFOAM bashrc spawns hundreds of subprocesses for path
+# manipulation, which costs ~3 s on Nix. We pre-compute its output at
+# build time and store it in \$out/etc/openfoam-env.sh. This script
+# replays that environment; only \$HOME and \$USER expand at runtime.
+#
+# Caveats:
+#   * Configuration is baked in. Setting WM_COMPILE_OPTION, WM_MPLIB,
+#     etc. before sourcing this has NO effect -- rebuild the derivation
+#     to change them.
+#   * Functions defined by the bashrc (foamEtcFile, foamCleanPath,
+#     _foamAddPath, ...) remain available and work as before.
+
+_of_prev_path="\''${PATH-}"
+_of_prev_ld="\''${LD_LIBRARY_PATH-}"
+
+source "$out/etc/openfoam-env.sh"
+
+# Preserve the caller's pre-existing PATH/LD_LIBRARY_PATH after the
+# OpenFOAM entries -- mirrors the original "prepend, don't replace" behaviour.
+[ -n "\$_of_prev_path" ] && export PATH="\$PATH:\$_of_prev_path"
+if [ -n "\$_of_prev_ld" ]; then
+  export LD_LIBRARY_PATH="\''${LD_LIBRARY_PATH-}\''${LD_LIBRARY_PATH:+:}\$_of_prev_ld"
+fi
+unset _of_prev_path _of_prev_ld
+INITEOF
     chmod +x "$out/bin/openfoam-init"
 
     echo "Generating dual-mode openfoam-shell entrypoint..."
@@ -242,13 +309,11 @@ EOF
 set -euo pipefail
 
 if [ \$# -eq 0 ]; then
-    # Mode 1: Interactive Shell (Human use)
     TMP_RC=\$(mktemp)
     echo "source \"$out/bin/openfoam-init\"" > "\$TMP_RC"
     echo "rm -f \"\$TMP_RC\"" >> "\$TMP_RC"
     exec ${bash}/bin/bash --noprofile --rcfile "\$TMP_RC" -i
 else
-    # Mode 2: Non-Interactive Execution (Python / Automation use)
     source "$out/bin/openfoam-init"
     exec "\$@"
 fi
