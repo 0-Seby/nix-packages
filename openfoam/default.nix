@@ -61,9 +61,6 @@ stdenv.mkDerivation {
       [ -e ${core}/$d ] && ln -s ${core}/$d $out/$d
     done
 
-    for f in ${core}/bin/*; do
-      ln -s "$f" "$out/bin/$(basename "$f")"
-    done
     for f in ${core}/etc/*; do
       ln -s "$f" "$out/etc/$(basename "$f")"
     done
