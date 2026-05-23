@@ -1,0 +1,3 @@
+# Fast OpenFOAM environment loader for fish.
+# See openfoam-init for the rationale; this is the same idea in fish syntax.
+source "@out@/etc/openfoam-env.fish"

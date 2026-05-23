@@ -35,10 +35,7 @@ let
 
   pvMajorMinor = lib.versions.majorMinor paraview.version;
 
-  passthru = {
-    inherit pvMajorMinor;
-    wmOptions = "linux64GccDPInt32Opt";
-  };
+  wmOptions = "linux64GccDPInt32Opt";
 in
 stdenv.mkDerivation {
   pname = "openfoam-core";
@@ -49,6 +46,11 @@ stdenv.mkDerivation {
     repo = "OpenFOAM-13";
     rev = "refs/tags/version-13";
     hash = "sha256-Iics6mmxvxmhZWpkIwfooU6gBiEECfyH+R4mvJ0AtxM=";
+  };
+
+  passthru = {
+    inherit pvMajorMinor;
+    inherit wmOptions;
   };
 
   nativeBuildInputs = [
@@ -87,7 +89,6 @@ stdenv.mkDerivation {
   ];
 
   env.NIX_CFLAGS_COMPILE = "-I${vtk}/include/vtk -I${paraview}/include/paraview";
-
 
   postPatch = ''
     patchShebangs ./
@@ -206,7 +207,7 @@ stdenv.mkDerivation {
   postFixup = ''
     remove-references-to -t ${cgal} $out/etc/config.sh/* 2>/dev/null || true
 
-    WM_OPTIONS=${passthru.wmOptions} \
+    WM_OPTIONS=${wmOptions} \
       ${bash}/bin/bash ${./install-symlinks.sh}
   '';
 }
