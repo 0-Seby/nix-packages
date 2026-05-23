@@ -1,3 +1,19 @@
 # Fast OpenFOAM environment loader for fish.
 # See openfoam-init for the rationale; this is the same idea in fish syntax.
+
+set -l _of_prev_path $PATH
+set -l _of_prev_ld $LD_LIBRARY_PATH
+
 source "@out@/etc/openfoam-env.fish"
+
+# Mirror the bash version's "prepend, don't replace" behaviour.
+if set -q _of_prev_path[1]
+    set -gx PATH $PATH $_of_prev_path
+end
+if set -q _of_prev_ld[1]
+    if set -q LD_LIBRARY_PATH[1]
+        set -gx LD_LIBRARY_PATH $LD_LIBRARY_PATH $_of_prev_ld
+    else
+        set -gx LD_LIBRARY_PATH $_of_prev_ld
+    end
+end
