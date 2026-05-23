@@ -1,0 +1,24 @@
+# Fast OpenFOAM environment loader.
+#
+# The full OpenFOAM bashrc spawns hundreds of subprocesses for path
+# manipulation, which costs ~3 s on Nix. We pre-compute its output at
+# build time and store it in @out@/etc/openfoam-env.sh. This script
+# replays that environment; only $HOME and $USER expand at runtime.
+#
+# Caveats:
+#   * Configuration is baked in. Setting WM_COMPILE_OPTION, WM_MPLIB,
+#     etc. before sourcing this has NO effect -- rebuild the derivation.
+#   * Functions defined by the bashrc (foamEtcFile, foamCleanPath, ...)
+#     remain available and behave as before.
+
+_of_prev_path="${PATH-}"
+_of_prev_ld="${LD_LIBRARY_PATH-}"
+
+source "@out@/etc/openfoam-env.sh"
+
+# Mirror the original "prepend, don't replace" behaviour.
+[ -n "$_of_prev_path" ] && export PATH="$PATH:$_of_prev_path"
+if [ -n "$_of_prev_ld" ]; then
+    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH-}${LD_LIBRARY_PATH:+:}$_of_prev_ld"
+fi
+unset _of_prev_path _of_prev_ld

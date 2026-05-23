@@ -60,7 +60,7 @@
 
       # == Main Overlay ==
       overlay = final: prev: {
-        # Bootstrap VTK: stripped, only used to build OCCT. Breaks the cycle.
+
         vtk-for-occt =
           (prev.vtk.override {
             opencascade-occt = null;
@@ -72,7 +72,6 @@
               '';
             });
 
-        # The real VTK everything else uses: OCCT support + Python wrapping.
         vtk = prev.vtk.override {
           pythonSupport = true;
         };
@@ -81,7 +80,9 @@
           vtk = final.vtk-for-occt;
         };
 
-        openfoam-13 = final.callPackage ./openfoam-13/default.nix { };
+        openfoam-core = final.callPackage ./openfoam/core.nix { };
+        openfoam = final.callPackage ./openfoam/default.nix { };
+
         ocp-generate = final.callPackage ./ocp-generate/default.nix { };
 
         python3 = prev.python3.override {
@@ -126,14 +127,11 @@
         let
           pkgs = pkgsFor system;
 
-          # 1. Define your exported packages EXACTLY ONCE here.
-          # Whenever you add a new package to your overlay, just add it to this list.
           myPackages = {
-            inherit (pkgs) openfoam-13 opencascade-occt ocp-generate;
+            inherit (pkgs) openfoam opencascade-occt ocp-generate;
           } // pkgs.lib.getAttrs pkgs.python3.pkgs.customPackageNames pkgs.python3.pkgs;
 
         in
-        # 2. Return all your packages, PLUS the dynamic 'all' collector.
         myPackages // {
           all = pkgs.linkFarm "all-my-packages" (
             pkgs.lib.mapAttrsToList (name: path: { inherit name path; }) myPackages
@@ -150,7 +148,7 @@
         {
           default = pkgs.mkShell {
             packages = [
-              pkgs.openfoam-13
+              pkgs.openfoam
               (pkgs.python3.withPackages (
                 ps:
                 ps.customPackagesList
@@ -163,8 +161,8 @@
 
             shellHook = ''
               # source the OpenFOAM initialization script
-              if [ -f "${pkgs.openfoam-13}/bin/openfoam-init" ]; then
-                source "${pkgs.openfoam-13}/bin/openfoam-init"
+              if [ -f "${pkgs.openfoam}/bin/openfoam-init" ]; then
+                source "${pkgs.openfoam}/bin/openfoam-init"
               else
                 echo "Warning: Could not automatically locate OpenFOAM shell initialization script."
               fi

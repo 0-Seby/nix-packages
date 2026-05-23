@@ -1,0 +1,14 @@
+#!@bash@
+set -euo pipefail
+
+if [ $# -eq 0 ]; then
+    # Interactive: spawn bash with openfoam-init pre-sourced
+    TMP_RC=$(mktemp)
+    trap 'rm -f "$TMP_RC"' EXIT
+    echo "source \"@out@/bin/openfoam-init\"" > "$TMP_RC"
+    exec @bash@ --noprofile --rcfile "$TMP_RC" -i
+else
+    # Non-interactive: source env, exec the command
+    source "@out@/bin/openfoam-init"
+    exec "$@"
+fi
