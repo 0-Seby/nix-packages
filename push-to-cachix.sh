@@ -1,47 +1,37 @@
 #!/usr/bin/env bash
-# push-to-cachix.sh — build every flake package and push it (plus runtime deps) to cachix.
-# Run only when you actually want to upload.
- 
+# push-to-cachix.sh — build all flake packages and push their closures to cachix.
 set -euo pipefail
- 
-CACHE_NAME="${CACHE_NAME:-seby}"
- 
-# Sanity checks
-command -v nix    >/dev/null || { echo "error: nix not on PATH"; exit 1; }
-command -v cachix >/dev/null || { echo "error: cachix not on PATH (try: nix profile install nixpkgs#cachix)"; exit 1; }
- 
-# Auth check — needs CACHIX_AUTH_TOKEN env var OR a prior `cachix authtoken <token>`
-if [[ -z "${CACHIX_AUTH_TOKEN:-}" ]] && [[ ! -f "$HOME/.config/cachix/cachix.dhall" ]]; then
-  echo "error: no cachix credentials found"
-  echo "  set CACHIX_AUTH_TOKEN=... or run: cachix authtoken <token-from-app.cachix.org>"
-  exit 1
-fi
- 
-echo ">>> Discovering packages in flake..."
-# Read all attribute names under packages.<system> directly from the flake
-SYSTEM="$(nix eval --impure --raw --expr 'builtins.currentSystem')"
-mapfile -t PKGS < <(nix eval --json ".#packages.${SYSTEM}" --apply 'builtins.attrNames' | jq -r '.[]')
- 
-if [[ ${#PKGS[@]} -eq 0 ]]; then
-  echo "error: no packages found in flake"
-  exit 1
-fi
- 
-echo ">>> Will build and push ${#PKGS[@]} packages: ${PKGS[*]}"
- 
-# Build all of them. Already-built paths are no-ops.
-echo ">>> Building..."
-BUILD_ARGS=()
-for p in "${PKGS[@]}"; do
-  BUILD_ARGS+=(".#${p}")
-done
-# --no-link avoids creating result-* symlinks in CWD
-OUTPATHS=$(nix build --no-link --print-out-paths "${BUILD_ARGS[@]}")
- 
-# Compute full runtime closure of every output and push the union
-echo ">>> Computing runtime closure and pushing to cachix:${CACHE_NAME}..."
-echo "$OUTPATHS" | xargs nix path-info --recursive | cachix push "$CACHE_NAME"
- 
-echo ">>> Done."
- 
 
+CACHE_NAME="${CACHE_NAME:-seby}"
+
+command -v nix    >/dev/null || { echo "error: nix not on PATH";    exit 1; }
+command -v cachix >/dev/null || { echo "error: cachix not on PATH"; exit 1; }
+
+if [[ -z "${CACHIX_AUTH_TOKEN:-}" ]] && [[ ! -f "$HOME/.config/cachix/cachix.dhall" ]]; then
+  echo "error: no cachix credentials"
+  echo "  set CACHIX_AUTH_TOKEN=... or run: cachix authtoken <token>"
+  exit 1
+fi
+
+SYSTEM="$(nix eval --impure --raw --expr 'builtins.currentSystem')"
+echo ">>> System: ${SYSTEM}"
+echo ">>> Cache:  ${CACHE_NAME}"
+
+# Build .#all — the linkFarm contains every per-system package output, so we
+# only need one derivation reference for both build and push.
+echo ">>> Building .#all ..."
+ALL_OUT="$(nix build --no-link --print-out-paths ".#all")"
+echo "    → ${ALL_OUT}"
+
+# Runtime closure: what users actually need to substitute.
+echo ">>> Pushing runtime closure ..."
+nix path-info --recursive "$ALL_OUT" | cachix push "$CACHE_NAME"
+
+# Build-time closure: lets incremental edits that don't change the runtime
+# closure still hit cache for intermediate steps.
+echo ">>> Pushing build-time (.drv) closure ..."
+ALL_DRV="$(nix path-info --derivation ".#all")"
+nix-store --query --requisites --include-outputs "$ALL_DRV" \
+  | cachix push "$CACHE_NAME"
+
+echo ">>> Done."

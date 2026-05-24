@@ -139,6 +139,8 @@
         }
       );
 
+      legacyPackages = forAllSystems pkgsFor;
+
       # == Development Shell ==
       devShells = forAllSystems (
         system:
