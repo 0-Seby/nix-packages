@@ -128,7 +128,7 @@
           pkgs = pkgsFor system;
 
           myPackages = {
-            inherit (pkgs) openfoam openfoam-core opencascade-occt ocp-generate;
+            inherit (pkgs) openfoam openfoam-core opencascade-occt ocp-generate vtk vtk-for-occt;
           } // pkgs.lib.getAttrs pkgs.python3.pkgs.customPackageNames pkgs.python3.pkgs;
 
         in
