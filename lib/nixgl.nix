@@ -9,14 +9,16 @@
 #   executable in $out/bin) is replaced with a makeWrapper script that
 #   execs nixGL with the original binary as its argument.
 { pkgs, lib, nixGL, isNixOS }:
-
-{ pkg, bins ? null }:
+{ pkg, bins ? null, binsDir ? null }:
 
 let
+  effectiveDir =
+    if binsDir != null then binsDir
+    else pkg.passthru.guiBinsDir or "bin";
   binsToWrap =
     if bins != null then bins
     else if pkg ? guiBins then pkg.guiBins
-    else null;  # null means "wrap everything in $out/bin"
+    else null;
 in
 if isNixOS then pkg
 else pkgs.symlinkJoin {
@@ -26,16 +28,16 @@ else pkgs.symlinkJoin {
   postBuild = ''
     wrap_one() {
       local bin="$1"
-      [ -e "$out/bin/$bin" ] || return 0
+      [ -e "$out/${effectiveDir}/$bin" ] || return 0
       local target
-      target=$(readlink -f "$out/bin/$bin")
-      rm "$out/bin/$bin"
-      makeWrapper "${nixGL}/bin/nixGL" "$out/bin/$bin" \
+      target=$(readlink -f "$out/${effectiveDir}/$bin")
+      rm "$out/${effectiveDir}/$bin"
+      makeWrapper "${nixGL}/bin/nixGL" "$out/${effectiveDir}/$bin" \
         --add-flags "$target"
     }
   '' + (
     if binsToWrap == null then ''
-      mapfile -t _bins < <(find "$out/bin" -maxdepth 1 -type f -executable -printf '%f\n')
+      mapfile -t _bins < <(find "$out/${effectiveDir}" -maxdepth 1 -type f -executable -printf '%f\n')
       for b in "''${_bins[@]}"; do wrap_one "$b"; done
     ''
     else lib.concatMapStringsSep "\n" (b: ''wrap_one "${b}"'') binsToWrap

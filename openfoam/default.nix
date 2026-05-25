@@ -57,6 +57,11 @@ stdenv.mkDerivation {
 
     mkdir -p $out/bin $out/etc
 
+    mkdir -p $out/foam-bin
+    for f in ${core}/bin/*; do
+      ln -s "$f" "$out/foam-bin/$(basename "$f")"
+    done
+
     for d in tutorials wmake src applications platforms site jobControl; do
       [ -e ${core}/$d ] && ln -s ${core}/$d $out/$d
     done
@@ -84,10 +89,10 @@ stdenv.mkDerivation {
 
     # 3. Install entrypoints — substitute @out@ here so it resolves to
     #    THIS derivation's $out, not the template file's store path.
-    substitute ${./openfoam-init.in}      $out/bin/openfoam-init      --subst-var out
-    substitute ${./openfoam-init.fish.in} $out/bin/openfoam-init.fish --subst-var out
-    substitute ${./openfoam-shell.in}     $out/bin/openfoam-shell \
-      --subst-var out \
+    cp ${./openfoam-init.in}      $out/bin/openfoam-init
+    cp ${./openfoam-init.fish.in} $out/bin/openfoam-init.fish
+
+    substitute ${./openfoam-shell.in} $out/bin/openfoam-shell \
       --subst-var-by bash ${bash}/bin/bash
     chmod +x $out/bin/openfoam-shell
 
@@ -104,6 +109,7 @@ stdenv.mkDerivation {
       "pdfPlot"
       "foamMonitor"
     ];
+    guiBinsDir = "foam-bin";
   };
 
   meta = core.meta or { };

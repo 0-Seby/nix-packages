@@ -2,25 +2,30 @@
 # Drop into a shell with OpenFOAM's environment loaded.
 set -euo pipefail
 
+# Locate our derivation root WITHOUT resolving symlinks, so when we're
+# invoked from openfoam-nixgl/bin/openfoam-shell we end up sourcing
+# openfoam-nixgl/bin/openfoam-init (the wrapped variant), not openfoam's.
+_self="$(realpath -s "$0")"
+_root="$(dirname "$(dirname "$_self")")"
+
 if [ $# -gt 0 ]; then
     # Non-interactive: source env, run the command.
     # shellcheck disable=SC1091
-    source "@out@/bin/openfoam-init"
+    source "$_root/bin/openfoam-init"
     exec "$@"
 fi
 
 user_shell="${SHELL:-@bash@}"
 shell_name=$(basename "$user_shell")
-
 case "$shell_name" in
     fish)
-        exec "$user_shell" -C "source '@out@/bin/openfoam-init.fish'" -i
+        exec "$user_shell" -C "source '$_root/bin/openfoam-init.fish'" -i
         ;;
     zsh)
         ZDOTDIR_TMP=$(mktemp -d)
         cat > "$ZDOTDIR_TMP/.zshrc" <<EOF
 [ -f "\$HOME/.zshrc" ] && source "\$HOME/.zshrc"
-source "@out@/bin/openfoam-init"
+source "$_root/bin/openfoam-init"
 EOF
         ZDOTDIR="$ZDOTDIR_TMP" exec "$user_shell" -i
         ;;
@@ -29,7 +34,7 @@ EOF
         trap 'rm -f "$TMP_RC"' EXIT
         cat > "$TMP_RC" <<EOF
 [ -f "\$HOME/.bashrc" ] && source "\$HOME/.bashrc"
-source "@out@/bin/openfoam-init"
+source "$_root/bin/openfoam-init"
 EOF
         exec @bash@ --rcfile "$TMP_RC" -i
         ;;

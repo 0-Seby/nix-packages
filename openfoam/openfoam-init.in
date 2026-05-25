@@ -10,15 +10,21 @@
 #     etc. before sourcing this has NO effect -- rebuild the derivation.
 #   * Functions defined by the bashrc (foamEtcFile, foamCleanPath, ...)
 #     remain available and behave as before.
+#
+_of_self="${BASH_SOURCE[0]:-$0}"
+_of_root="$(dirname "$(dirname "$_of_self")")"
 
 _of_prev_path="${PATH-}"
 _of_prev_ld="${LD_LIBRARY_PATH-}"
 
-source "@out@/etc/openfoam-env.sh"
+source "$_of_root/etc/openfoam-env.sh"
 
-# Mirror the original "prepend, don't replace" behaviour.
+# Prepend our foam-bin so tools become available. Done AFTER sourcing
+# the captured env so this wins regardless of what the env put on PATH.
+export PATH="$_of_root/foam-bin:$PATH"
+
 [ -n "$_of_prev_path" ] && export PATH="$PATH:$_of_prev_path"
 if [ -n "$_of_prev_ld" ]; then
     export LD_LIBRARY_PATH="${LD_LIBRARY_PATH-}${LD_LIBRARY_PATH:+:}$_of_prev_ld"
 fi
-unset _of_prev_path _of_prev_ld
+unset _of_prev_path _of_prev_ld _of_self _of_root

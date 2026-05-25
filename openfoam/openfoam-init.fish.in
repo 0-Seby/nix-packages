@@ -1,10 +1,18 @@
 # Fast OpenFOAM environment loader for fish.
-# See openfoam-init for the rationale; this is the same idea in fish syntax.
+# See openfoam-init for the rationale; same idea in fish syntax.
+
+# Find our own directory so foam-bin resolves to the derivation
+# we were sourced from (openfoam OR openfoam-nixgl).
+set -l _of_self (status --current-filename)
+set -l _of_root (dirname (dirname $_of_self))
 
 set -l _of_prev_path $PATH
 set -l _of_prev_ld $LD_LIBRARY_PATH
 
-source "@out@/etc/openfoam-env.fish"
+source "$_of_root/etc/openfoam-env.fish"
+
+# Prepend foam-bin AFTER the captured env so we win the override race.
+set -gx PATH "$_of_root/foam-bin" $PATH
 
 # Mirror the bash version's "prepend, don't replace" behaviour.
 if set -q _of_prev_path[1]
