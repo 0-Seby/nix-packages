@@ -119,6 +119,30 @@
 
       lib = {
         inherit pythonPackagesOverlay;
+
+        # Bring your own pkgs + nixGL + isNixOS, get back a wrapper.
+        # Usage in a consumer flake:
+        #   withNixGL = sebPkgs.lib.withNixGL { inherit pkgs nixGL isNixOS; };
+        #   pythonEnv = withNixGL { pkg = pyEnv; bins = [ "python" "jupyter" ]; };
+        #   openfoam  = withNixGL { pkg = sebPkgs.openfoam; };  # uses passthru.guiBins
+        withNixGL =
+          {
+            pkgs,
+            nixGL,
+            isNixOS,
+          }:
+          import ./lib/nixgl.nix {
+            inherit pkgs nixGL isNixOS;
+            lib = pkgs.lib;
+          };
+        pythonGuiBins = [
+          "python"
+          "python3"
+          "python3.13"
+          "jupyter"
+          "jupyter-notebook"
+          "ipython"
+        ];
       };
 
       # == Exporter ==
@@ -128,11 +152,20 @@
           pkgs = pkgsFor system;
 
           myPackages = {
-            inherit (pkgs) openfoam openfoam-core opencascade-occt ocp-generate vtk vtk-for-occt;
-          } // pkgs.lib.getAttrs pkgs.python3.pkgs.customPackageNames pkgs.python3.pkgs;
+            inherit (pkgs)
+              openfoam
+              openfoam-core
+              opencascade-occt
+              ocp-generate
+              vtk
+              vtk-for-occt
+              ;
+          }
+          // pkgs.lib.getAttrs pkgs.python3.pkgs.customPackageNames pkgs.python3.pkgs;
 
         in
-        myPackages // {
+        myPackages
+        // {
           all = pkgs.linkFarm "all-my-packages" (
             pkgs.lib.mapAttrsToList (name: path: { inherit name path; }) myPackages
           );

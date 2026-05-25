@@ -94,7 +94,17 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
-  passthru = { inherit core; };
+  passthru = {
+    inherit core;
+    guiBins = [
+      "paraview"
+      "paraFoam"
+      "paraFoamServer"
+      "foamCreateVideo"
+      "pdfPlot"
+      "foamMonitor"
+    ];
+  };
 
   meta = core.meta or { };
 }
