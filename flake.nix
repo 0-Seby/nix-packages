@@ -50,6 +50,8 @@
             trame-vuetify = pyFinal.callPackage ./trame/trame-vuetify.nix { };
             trame-components = pyFinal.callPackage ./trame/trame-components.nix { };
             trame = pyFinal.callPackage ./trame/trame.nix { };
+
+            parsl = pyFinal.callPackage ./parsl/default.nix { };
           };
         in
         customPkgs
