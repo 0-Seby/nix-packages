@@ -83,7 +83,11 @@
         };
 
         openfoam-core = final.callPackage ./openfoam/core.nix { };
-        openfoam = final.callPackage ./openfoam/default.nix { };
+        mkFoamPlugin = final.callPackage ./openfoam/mk-foam-plugin.nix { };
+        foamPlugins = {
+          bartz = final.callPackage ./openfoam-plugins/bartz/default.nix { };
+        };
+        openfoam = final.callPackage ./openfoam/default.nix { inherit (final) foamPlugins; };
 
         ocp-generate = final.callPackage ./ocp-generate/default.nix { };
 
@@ -162,6 +166,7 @@
               vtk
               vtk-for-occt
               ;
+            bartz = pkgs.foamPlugins.bartz;
           }
           // pkgs.lib.getAttrs pkgs.python3.pkgs.customPackageNames pkgs.python3.pkgs;
 
