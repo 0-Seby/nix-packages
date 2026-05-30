@@ -494,14 +494,6 @@ void Foam::Bartz::write(Ostream &os) const {
 
 namespace Foam {
 makePatchTypeField(fvPatchScalarField, Bartz);
-
-addBackwardCompatibleToRunTimeSelectionTable(
-    fvPatchScalarField, Bartz, patchMapper,
-    externalWallHeatFluxTemperatureBartz, "bartz");
-
-addBackwardCompatibleToRunTimeSelectionTable(
-    fvPatchScalarField, Bartz, dictionary, externalWallHeatFluxTemperatureBartz,
-    "bartz");
 } // namespace Foam
 
 // ************************************************************************* //
