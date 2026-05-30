@@ -210,6 +210,13 @@
               fi
             '';
           };
+
+          openfoam-bartz = pkgs.mkShell {
+            packages = [ (pkgs.openfoam.withPackages (p: [ p.bartz ])) ];
+            shellHook = ''
+              source "${pkgs.openfoam.withPackages (p: [ p.bartz ])}/bin/openfoam-init"
+            '';
+          };
         }
       );
 
