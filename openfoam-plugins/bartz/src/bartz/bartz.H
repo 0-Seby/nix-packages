@@ -111,6 +111,7 @@ class Bartz : public mixedFvPatchScalarField {
   const bool haveBartz_;
 
   const scalar constFactor_;
+  const scalar gamma_;
   const scalar AStar_;
   const scalarList AList_;
   const scalarList MList_;
@@ -191,7 +192,7 @@ protected:
 
 public:
   //- Runtime type information
-  TypeName("externalTemperature");
+  TypeName("bartz");
 
   // Constructors
 
@@ -255,3 +256,4 @@ public:
 #endif
 
 // ************************************************************************* //
+

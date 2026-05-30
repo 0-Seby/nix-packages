@@ -81,22 +81,23 @@ Foam::Bartz::Bartz(const fvPatch &p,
     : mixedFvPatchScalarField(p, iF, dict, false),
       haveBartz_(dict.found("constFactor") || dict.found("AStar") ||
                  dict.found("A") || dict.found("M") ||
-                 dict.found("zControlPoints")),
+                 dict.found("zControlPoints") || dict.found("gamma")),
       constFactor_(dict.found("constFactor")
                        ? dict.lookup<scalar>("constFactor", unitFraction)
                        : NaN),
-      AStar_(dict.found("AStar")
-                 ? dict.lookup<scalar>("AStar", unitFraction)
-                 : NaN),
-      AList_(dict.found("A")
-                 ? dict.lookup<scalarList>("A", unitFraction)
-                 : scalarList()),
-      MList_(dict.found("M")
-                 ? dict.lookup<scalarList>("M", unitFraction)
-                 : scalarList()),
-      zControlPoints_(dict.found("zControlPoints")
-                          ? dict.lookup<scalarList>("zControlPoints", unitFraction)
-                          : scalarList()),      haveQ_(dict.found("Q")),
+      gamma_(dict.found("gamma") ? dict.lookup<scalar>("gamma", unitFraction)
+                                 : NaN),
+      AStar_(dict.found("AStar") ? dict.lookup<scalar>("AStar", unitFraction)
+                                 : NaN),
+      AList_(dict.found("A") ? dict.lookup<scalarList>("A", unitFraction)
+                             : scalarList()),
+      MList_(dict.found("M") ? dict.lookup<scalarList>("M", unitFraction)
+                             : scalarList()),
+      zControlPoints_(
+          dict.found("zControlPoints")
+              ? dict.lookup<scalarList>("zControlPoints", unitFraction)
+              : scalarList()),
+      haveQ_(dict.found("Q")),
       Q_(haveQ_ ? Function1<scalar>::New("Q", db().time().userUnits(), dimPower,
                                          dict)
                 : autoPtr<Function1<scalar>>()),
@@ -121,7 +122,7 @@ Foam::Bartz::Bartz(const fvPatch &p,
       kappaLayers_(haveLayers_ ? dict.lookup<scalarList>("kappaLayers",
                                                          dimThermalConductivity)
                                : scalarList()),
-      Tcc_(haveh_ || haveEmissivity_
+      Tcc_(haveBartz_ || haveh_ || haveEmissivity_
                ? Function1<scalar>::New("Tcc", db().time().userUnits(),
                                         dimTemperature, dict)
                      .ptr()
@@ -156,6 +157,33 @@ Foam::Bartz::Bartz(const fvPatch &p,
         << exit(FatalIOError);
   }
 
+  if (haveBartz_) {
+    if (!dict.found("constFactor") || !dict.found("gamma") ||
+        !dict.found("AStar") || !dict.found("A") || !dict.found("M") ||
+        !dict.found("zControlPoints")) {
+      FatalIOErrorInFunction(dict)
+          << "The Bartz model requires all of: constFactor, gamma, "
+          << "AStar, A, M and zControlPoints to be specified."
+          << exit(FatalIOError);
+    }
+
+    if (zControlPoints_.size() < 2) {
+      FatalIOErrorInFunction(dict)
+          << "zControlPoints needs at least 2 points for spline "
+          << "interpolation (got " << zControlPoints_.size() << ')'
+          << exit(FatalIOError);
+    }
+
+    if (AList_.size() != zControlPoints_.size() ||
+        MList_.size() != zControlPoints_.size()) {
+      FatalIOErrorInFunction(dict)
+          << "A, M and zControlPoints must be lists of equal length. Got "
+          << "A=" << AList_.size() << ", M=" << MList_.size()
+          << ", zControlPoints=" << zControlPoints_.size()
+          << exit(FatalIOError);
+    }
+  }
+
   if (dict.found("refValue")) {
     // Full restart
     refValue() = scalarField("refValue", iF.dimensions(), dict, p.size());
@@ -175,10 +203,11 @@ Foam::Bartz::Bartz(const Bartz &ptf, const fvPatch &p,
                    const DimensionedField<scalar, volMesh> &iF,
                    const fieldMapper &mapper)
     : mixedFvPatchScalarField(ptf, p, iF, mapper), haveBartz_(ptf.haveBartz_),
-      constFactor_(ptf.constFactor_), AStar_(ptf.AStar_), AList_(ptf.AList_),
-      MList_(ptf.MList_), zControlPoints_(ptf.zControlPoints_),
-      haveQ_(ptf.haveQ_), Q_(ptf.Q_, false), haveq_(ptf.haveq_),
-      q_(ptf.q_, false), haveh_(ptf.haveh_), h_(ptf.h_, false),
+      constFactor_(ptf.constFactor_), gamma_(ptf.gamma_), AStar_(ptf.AStar_),
+      AList_(ptf.AList_), MList_(ptf.MList_),
+      zControlPoints_(ptf.zControlPoints_), haveQ_(ptf.haveQ_),
+      Q_(ptf.Q_, false), haveq_(ptf.haveq_), q_(ptf.q_, false),
+      haveh_(ptf.haveh_), h_(ptf.h_, false),
       haveEmissivity_(ptf.haveEmissivity_), emissivity_(ptf.emissivity_),
       haveLayers_(ptf.haveLayers_), thicknessLayers_(ptf.thicknessLayers_),
       kappaLayers_(ptf.kappaLayers_), Tcc_(ptf.Tcc_, false), relax_(ptf.relax_),
@@ -188,7 +217,8 @@ Foam::Bartz::Bartz(const Bartz &ptf, const fvPatch &p,
 
 Foam::Bartz::Bartz(const Bartz &tppsf,
                    const DimensionedField<scalar, volMesh> &iF)
-    : mixedFvPatchScalarField(tppsf, iF), haveBartz_(tppsf.haveBartz_) ,constFactor_(tppsf.constFactor_),
+    : mixedFvPatchScalarField(tppsf, iF), haveBartz_(tppsf.haveBartz_),
+      constFactor_(tppsf.constFactor_), gamma_(tppsf.gamma_),
       AStar_(tppsf.AStar_), AList_(tppsf.AList_), MList_(tppsf.MList_),
       zControlPoints_(tppsf.zControlPoints_), haveQ_(tppsf.haveQ_),
       Q_(tppsf.Q_, false), haveq_(tppsf.haveq_), q_(tppsf.q_, false),
@@ -258,7 +288,8 @@ void Foam::Bartz::updateCoeffs() {
   }
 
   // Evaluate the cc temperature
-  const scalar Tcc = haveh_ || haveEmissivity_ ? Tcc_->value(t) : NaN;
+  const scalar Tcc =
+      (haveBartz_ || haveh_ || haveEmissivity_) ? Tcc_->value(t) : NaN;
 
   // Evaluate the combined convective and radiative heat transfer coefficient
   tmp<scalarField> hEff;
@@ -296,21 +327,25 @@ void Foam::Bartz::updateCoeffs() {
       scalarField &z = zField.ref();
       scalarField &h = hBartzField.ref();
 
+      const scalar zMin = zControlPoints_.first();
+      const scalar zMax = zControlPoints_.last();
+
       forAll(z, i) {
-        scalar A = max(A_spline(z[i]), 0.00001);
-        scalar M = max(M_spline(z[i]), 0.00001);
+        const scalar zClamped = min(max(z[i], zMin), zMax);
+
+        scalar A = max(A_spline(zClamped), 0.00001);
+        scalar M = max(M_spline(zClamped), 0.00001);
 
         scalar A_ratio = AStar_ / A;
         scalar T_ratio = T()[i] / Tcc;
-        scalar gamma_ = 1.4;
 
         scalar sigma =
-            1.0 / (pow(0.5 * T_ratio * (1.0 + gamma_ / 2.0 * pow(M, 2)) + 0.5,
-                      0.8 - 0.6 / 5.0) *
-                  pow(1.0 + (gamma_ - 1.0) / 2.0 * pow(M, 2), 0.6 / 5.0));
+            1.0 /
+            (pow(0.5 * T_ratio * (1.0 + (gamma_ - 1.0) / 2.0 * pow(M, 2)) + 0.5,
+                 0.8 - 0.6 / 5.0) *
+             pow(1.0 + (gamma_ - 1.0) / 2.0 * pow(M, 2), 0.6 / 5.0));
 
         h[i] = constFactor_ * pow(A_ratio, 0.9) * sigma;
-        // h[i] = A;
       }
 
       tmp<scalarField> hBartz = hBartzField();
@@ -408,6 +443,7 @@ void Foam::Bartz::write(Ostream &os) const {
 
   if (haveBartz_) {
     writeEntry(os, "constFactor", constFactor_);
+    writeEntry(os, "gamma", gamma_);
     writeEntry(os, "AStar", AStar_);
     writeEntry(os, "A", AList_); // List writes are handled by writeEntry
     writeEntry(os, "M", MList_);
@@ -469,3 +505,4 @@ addBackwardCompatibleToRunTimeSelectionTable(
 } // namespace Foam
 
 // ************************************************************************* //
+
