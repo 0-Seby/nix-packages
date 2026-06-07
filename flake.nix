@@ -65,23 +65,21 @@
       # == Main Overlay ==
       overlay = final: prev: {
 
-        vtk-for-occt =
-          (prev.vtk.override {
-            opencascade-occt = null;
-            pythonSupport = false;
-          }).overrideAttrs
-            (old: {
-              postPatch = (old.postPatch or "") + ''
-                rm -rf IO/OCCT
-              '';
-            });
+        opencascade-occt-bootstrap = final.callPackage ./opencascade-occt/default.nix {
+          vtk = null;
+          useVtk = false;
+        };
 
         vtk = prev.vtk.override {
           pythonSupport = true;
+          opencascade-occt = final.opencascade-occt-bootstrap;
+          python3Packages = final.python3.pkgs;
         };
 
+        vtk-for-occt = final.vtk;
+
         opencascade-occt = final.callPackage ./opencascade-occt/default.nix {
-          vtk = final.vtk-for-occt;
+          vtk = final.vtk;
         };
 
         openfoam-core = final.callPackage ./openfoam/core.nix { };
@@ -94,7 +92,12 @@
         ocp-generate = final.callPackage ./ocp-generate/default.nix { };
 
         python3 = prev.python3.override {
-          packageOverrides = pyFinal: pyPrev: (pythonPackagesOverlay pyFinal pyPrev);
+          packageOverrides =
+            pyFinal: pyPrev:
+            (pythonPackagesOverlay pyFinal pyPrev)
+            // {
+              vtk = final.vtk;
+            };
         };
       };
 
