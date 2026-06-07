@@ -1,6 +1,5 @@
 {
-  stdenv,
-  lib,
+  # stdenv,
   cmake,
   ninja,
   python3,
@@ -11,9 +10,10 @@
   libGL,
   libGLU,
   rapidjson,
-  libxml2, # <-- Added to satisfy VTK's config
-  freetype, # <-- Added to satisfy VTK's config
-  xorg,
+  libxml2,
+  freetype,
+  libX11,
+  gcc14Stdenv,
 }:
 
 let
@@ -37,6 +37,8 @@ let
       lief
     ]
   );
+
+  stdenv = gcc14Stdenv; # pinning toolchain due to stricter error tolerance in newer versions ruining build
 
 in
 stdenv.mkDerivation rec {
@@ -85,7 +87,7 @@ stdenv.mkDerivation rec {
     rapidjson
     libxml2 # Satisfies VTK
     freetype # Satisfies VTK
-    xorg.libX11
+    libX11
   ];
 
   cmakeFlags = [

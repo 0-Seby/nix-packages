@@ -6,7 +6,7 @@
     extra-trusted-public-keys = [ "seby.cachix.org-1:Vych8bxZ7KpUVrz2GELTegGr7th/kdAWHfzVVENyocc=" ];
   };
 
-  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
 
   outputs =
     { self, nixpkgs }:
@@ -25,6 +25,8 @@
         let
           customPkgs = {
             multicollections = pyFinal.callPackage ./multicollections/default.nix { };
+
+            aioshutil = pyFinal.callPackage ./aioshutil/default.nix { };
 
             foamlib = pyFinal.callPackage ./foamlib/default.nix {
               multicollections = pyFinal.multicollections;

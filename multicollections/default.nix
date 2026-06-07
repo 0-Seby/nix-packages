@@ -1,17 +1,25 @@
-{ buildPythonPackage, fetchPypi, uv-build }:
+{
+  buildPythonPackage,
+  fetchPypi,
+  uv-build,
+}:
 
 buildPythonPackage rec {
   pname = "multicollections";
-  version = "1.0.8"; 
-
+  version = "1.0.8";
   pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-qut7LB9KVKUIhnk1BoVpIppn+b4z+pPbwYIiHie2l2o="; 
+    hash = "sha256-qut7LB9KVKUIhnk1BoVpIppn+b4z+pPbwYIiHie2l2o=";
   };
+
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail 'uv_build>=0.9,<0.10' 'uv_build>=0.9'
+  '';
 
   nativeBuildInputs = [ uv-build ];
 
-  doCheck = false; 
+  doCheck = true;
 }

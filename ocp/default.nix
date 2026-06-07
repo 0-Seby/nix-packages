@@ -8,14 +8,19 @@
   opencascade-occt,
   vtk,
   pybind11,
-  pybind11-stubgen, # <-- new
+  pybind11-stubgen,
   fmt,
   libGL,
   libGLU,
-  xorg,
+  libX11,
+  libXt,
   rapidjson,
   ocp-generate,
+  gcc14Stdenv,
 }:
+let
+  stdenv = gcc14Stdenv; # pinning toolchain due to stricter error tolerance in newer versions ruining build
+in
 toPythonModule (
   stdenv.mkDerivation rec {
     pname = "ocp";
@@ -40,8 +45,8 @@ toPythonModule (
       fmt
       libGL
       libGLU
-      xorg.libX11
-      xorg.libXt
+      libX11
+      libXt
     ];
 
     cmakeFlags = [
@@ -58,7 +63,7 @@ toPythonModule (
       "-DPython_ROOT_DIR=${python}"
       "-DPython_FIND_STRATEGY=LOCATION"
       "-DPython3_FIND_STRATEGY=LOCATION"
-      "-DCMAKE_CXX_FLAGS=-isystem ${rapidjson}/include"
+      # "-DCMAKE_CXX_FLAGS=-isystem ${rapidjson}/include"
     ];
 
     enableParallelBuilding = true;
@@ -111,6 +116,7 @@ toPythonModule (
 
     env = {
       NIX_LDFLAGS = "-lfmt";
+      NIX_CFLAGS_COMPILE = "-isystem ${rapidjson}/include";
     };
 
     meta = with lib; {
