@@ -17,11 +17,18 @@ _of_root="$(dirname "$(dirname "$_of_self")")"
 _of_prev_path="${PATH-}"
 _of_prev_ld="${LD_LIBRARY_PATH-}"
 
-source "$_of_root/etc/openfoam-env.sh"
+# Captured env lives at a fixed store path (baked at build time). This is
+# found even through a NixOS profile that doesn't link our etc/ dir, and it's
+# identical across the base/withPackages/nixGL variants so baking it is safe.
+source "@envCache@"
 
-# Prepend our foam-bin so tools become available. Done AFTER sourcing
-# the captured env so this wins regardless of what the env put on PATH.
-export PATH="$_of_root/foam-bin:$PATH"
+# foam-bin stays RELATIVE to how we were invoked (unresolved), so the nixGL
+# symlinkJoin's wrapped GUI bins win over the core copies the env put on PATH.
+# If a restrictive profile didn't link it, skip it -- on NixOS nixGL is a
+# no-op, so the core GUI bins already on PATH are correct anyway.
+if [ -d "$_of_root/foam-bin" ]; then
+    export PATH="$_of_root/foam-bin:$PATH"
+fi
 
 [ -n "$_of_prev_path" ] && export PATH="$PATH:$_of_prev_path"
 if [ -n "$_of_prev_ld" ]; then

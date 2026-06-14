@@ -83,9 +83,13 @@ let
           ln -s "$f" "$out/bin/$name"
         done
 
-        # Same relocatable scripts + appended plugin lines.
-        cat ${./openfoam-init.in}      ${fragBash} > $out/bin/openfoam-init
-        cat ${./openfoam-init.fish.in} ${fragFish} > $out/bin/openfoam-init.fish
+        substitute ${./openfoam-init.in} $out/bin/openfoam-init \
+          --subst-var-by envCache "${base}/etc/openfoam-env.sh"
+        cat ${fragBash} >> $out/bin/openfoam-init
+
+        substitute ${./openfoam-init.fish.in} $out/bin/openfoam-init.fish \
+          --subst-var-by envCache "${base}/etc/openfoam-env.fish"
+        cat ${fragFish} >> $out/bin/openfoam-init.fish
 
         runHook postInstall
       '';
@@ -131,8 +135,10 @@ let
         replaceVars ./generate-fish-env.sh { sed = "${gnused}/bin/sed"; }
       }
 
-      cp ${./openfoam-init.in}      $out/bin/openfoam-init
-      cp ${./openfoam-init.fish.in} $out/bin/openfoam-init.fish
+      substitute ${./openfoam-init.in}      $out/bin/openfoam-init \
+        --subst-var-by envCache "$out/etc/openfoam-env.sh"
+      substitute ${./openfoam-init.fish.in} $out/bin/openfoam-init.fish \
+        --subst-var-by envCache "$out/etc/openfoam-env.fish"
 
       substitute ${./openfoam-shell.in} $out/bin/openfoam-shell \
         --subst-var-by bash ${bash}/bin/bash

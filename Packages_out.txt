@@ -1,99 +1,3 @@
-Packages on  main [✘!] took 12s
-➜ tree
-.
-├── aioshutil
-│   └── default.nix
-├── cadquery
-│   └── default.nix
-├── coolprop
-│   └── default.nix
-├── flake.lock
-├── flake.nix
-├── foamlib
-│   └── default.nix
-├── lib
-│   └── nixgl.nix
-├── multicollections
-│   └── default.nix
-├── ocp
-│   └── default.nix
-├── ocp-generate
-│   ├── default.nix
-│   └── fix-libclang.patch
-├── opencascade-occt
-│   └── default.nix
-├── openfoam
-│   ├── capture-env.sh
-│   ├── core.nix
-│   ├── default.nix
-│   ├── generate-fish-env.sh
-│   ├── install-symlinks.sh
-│   ├── mk-foam-plugin.nix
-│   ├── openfoam-init.fish.in
-│   ├── openfoam-init.in
-│   └── openfoam-shell.in
-├── openfoam-plugins
-│   └── bartz
-│       ├── default.nix
-│       └── src
-│           ├── bartz
-│           │   ├── bartz.C
-│           │   ├── bartz.H
-│           │   └── spline.hpp
-│           ├── compile_commands.json
-│           ├── lnInclude
-│           │   ├── bartz.C -> ../bartz/bartz.C
-│           │   ├── bartz.H -> ../bartz/bartz.H
-│           │   └── spline.hpp -> ../bartz/spline.hpp
-│           └── Make
-│               ├── files
-│               ├── linux64GccDPInt32Opt
-│               │   ├── bartz
-│               │   │   ├── bartz.C.dep
-│               │   │   └── bartz.o
-│               │   └── files
-│               └── options
-├── Packages_out.txt
-├── parsl
-│   └── default.nix
-├── pybind11-2
-│   └── default.nix
-├── pybind11-stubgen
-│   └── default.nix
-├── pyfluids
-│   └── default.nix
-├── README.md
-├── result -> /nix/store/y448rak92grk1jsni5al5xw92gccgbdn-all-my-packages
-├── scripts
-│   ├── build-all.sh
-│   ├── out.sh
-│   ├── push-to-cachix.sh
-│   └── verify-cache.sh
-├── tests
-│   ├── imports.py
-│   ├── __pycache__
-│   │   ├── foamlib.cpython-313.pyc
-│   │   └── multicollections.cpython-313.pyc
-│   ├── test_cadquery.py
-│   ├── test_coolprop.py
-│   ├── test_foamlib.py
-│   ├── test_multicollections.py
-│   ├── test_ocp.py
-│   └── test_pyfluids.py
-└── trame
-    ├── result -> /nix/store/1gl5ijdpls94cl48sbr3bwnr2ix4hvla-python3.13-trame-2.5.0
-    ├── trame-client.nix
-    ├── trame-common.nix
-    ├── trame-components.nix
-    ├── trame.nix
-    ├── trame-server.nix
-    ├── trame-vtk.nix
-    ├── trame-vuetify.nix
-    └── wslink.nix
-
-29 directories, 61 files
-
-
 === ./multicollections/default.nix ===
 {
   buildPythonPackage,
@@ -972,6 +876,17 @@ stdenv.mkDerivation rec {
       # == Main Overlay ==
       overlay = final: prev: {
 
+        # === VTK <-> OpenCASCADE cycle break ==========================================
+        # Genuine circular dependency:
+        #   * VTK wants OCCT  -> IOOCCT (read STEP/IGES), needed for OCP to build.
+        #   * OCCT wants VTK  -> IVtk  (render OCCT shapes), needed by cadquery/OCP viz.
+        # Resolved by building OCCT twice (OCCT is the cheaper half):
+        #   1. occt-bootstrap : OCCT with NO vtk          (breaks the knot)
+        #   2. vtk            : VTK built against #1       (gains IOOCCT)
+        #   3. opencascade-occt: OCCT built against #2     (gains IVtk; the "real" one)
+        # Everything downstream (ocp, cadquery) uses #3 + #2. As a result OCP's closure
+        # contains both OCCTs (full directly, bootstrap via VTK). This is expected.
+        # DO NOT make vtk depend on opencascade-occt (#3) — that recreates the cycle.
         opencascade-occt-bootstrap = final.callPackage ./opencascade-occt/default.nix {
           vtk = null;
           useVtk = false;
@@ -983,11 +898,10 @@ stdenv.mkDerivation rec {
           python3Packages = final.python3.pkgs;
         };
 
-        vtk-for-occt = final.vtk;
-
         opencascade-occt = final.callPackage ./opencascade-occt/default.nix {
           vtk = final.vtk;
         };
+        # ==============================================================================
 
         openfoam-core = final.callPackage ./openfoam/core.nix { };
         mkFoamPlugin = final.callPackage ./openfoam/mk-foam-plugin.nix { };
@@ -1003,7 +917,12 @@ stdenv.mkDerivation rec {
             pyFinal: pyPrev:
             (pythonPackagesOverlay pyFinal pyPrev)
             // {
-              vtk = final.vtk;
+              # final.vtk reads final.python3.pkgs, and this set re-injects vtk.
+              # Safe only because vtk's python3Packages arg is never forced while
+              # constructing this attr. toPythonModule binds pythonModule to THIS
+              # set's interpreter so withPackages keeps vtkmodules on PYTHONPATH.
+              # Keep it as `pyFinal.toPythonModule final.vtk` — don't rebuild vtk here.
+              vtk = pyFinal.toPythonModule final.vtk;
             };
         };
       };
@@ -1076,7 +995,6 @@ stdenv.mkDerivation rec {
               opencascade-occt
               ocp-generate
               vtk
-              vtk-for-occt
               ;
             bartz = pkgs.foamPlugins.bartz;
           }
@@ -1185,17 +1103,16 @@ buildPythonPackage rec {
     hash = "sha256-kanJCwy4mYl16+RG1rucAzJvbbbxV7lpVHAJHlfQaAs=";
   };
 
-  format = "pyproject";
+  pyproject = true;
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     wheel
     hatchling
     pythonNamespacesHook
   ];
 
-  # This fixes your "not installed" error
-  propagatedBuildInputs = [
+  dependencies = [
     trame-server
     trame-client
     trame-common
@@ -1240,17 +1157,16 @@ buildPythonPackage rec {
     hash = "sha256-Qn3HMVEXPp0H7nqtIbHopT10ZYXf/zB0y++gX+MykOo=";
   };
 
-  format = "pyproject";
+  pyproject = true;
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     wheel
     hatchling
     pythonNamespacesHook
   ];
 
-  # This fixes your "not installed" error
-  propagatedBuildInputs = [
+  dependencies = [
     trame-server
     trame-client
     trame-common
@@ -1291,17 +1207,16 @@ buildPythonPackage rec {
     hash = "sha256-sqyEiMeuG0vA0ZaHmQiedAXx3HT/bfiN/JIOeNq+N2Q=";
   };
 
-  format = "pyproject";
+  pyproject = true;
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     wheel
     hatchling
     pythonNamespacesHook
   ];
 
-  # This fixes your "not installed" error
-  propagatedBuildInputs = [
+  dependencies = [
     wslink
     pyyaml
   ];
@@ -1340,17 +1255,16 @@ buildPythonPackage rec {
     hash = "sha256-cNBHQS1nakRnFDbFLMwVEUzQj4zipY/z/5awuObMJJM=";
   };
 
-  format = "pyproject";
+  pyproject = true;
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     wheel
     hatchling
     pythonNamespacesHook
   ];
 
-  # This fixes your "not installed" error
-  propagatedBuildInputs = [
+  dependencies = [
     trame-server
     trame-client
     trame-common
@@ -1394,21 +1308,20 @@ buildPythonPackage rec {
     hash = "sha256-g3A12JavsmCVleadIphrj6XtokEE0qnZTHiJ0XVCXmc=";
   };
 
-  format = "pyproject";
+  pyproject = true;
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     wheel
+    pythonNamespacesHook
   ];
 
-  # This fixes your "not installed" error
-  propagatedBuildInputs = [
+  dependencies = [
     trame-server
     trame-client
     trame-common
     wslink
     pyyaml
-    pythonNamespacesHook
   ];
 
   pythonNamespaces = [
@@ -1448,9 +1361,9 @@ buildPythonPackage rec {
     hash = "sha256-gJD3HwBVUtPyMwotU6IT8nwQVPDO3tSVgJ9R8TRomZQ=";
   };
 
-  format = "pyproject";
+  pyproject = true;
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     wheel
     hatchling
@@ -1458,8 +1371,7 @@ buildPythonPackage rec {
     pythonNamespacesHook
   ];
 
-  # This fixes your "not installed" error
-  propagatedBuildInputs = [
+  dependencies = [
     trame-common
     wslink
     pyyaml
@@ -1477,8 +1389,6 @@ buildPythonPackage rec {
 {
   buildPythonPackage,
   fetchFromGitHub,
-  setuptools,
-  wheel,
   tornado,
   six,
   hatchling,
@@ -1497,18 +1407,19 @@ buildPythonPackage rec {
     hash = "sha256-47vHc+b5Z3ipkLZ5k0yEasNaKz0Seu2jiGBVmAI5u6U="; # Run nix build to get the real hash
   };
 
-  format = "pyproject";
-  nativeBuildInputs = [
-    setuptools
-    wheel
+  pyproject = true;
+
+  build-system = [
     hatchling
+  ];
+
+  dependencies = [
+    tornado
+    six
     aiohttp
     msgpack
   ];
-  propagatedBuildInputs = [
-    tornado
-    six
-  ];
+
   doCheck = false;
 }
 
@@ -1574,23 +1485,22 @@ buildPythonPackage rec {
 
 buildPythonPackage rec {
   pname = "pybind11-stubgen";
-  version = "unstable-2025-12-19"; # match last commit date you pin
+  version = "unstable-2025-12-19";
 
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "CadQuery";
     repo = "pybind11-stubgen";
-    rev = "32e111a"; # <-- replace with the commit hash from CadQuery/pybind11-stubgen
-    hash = "sha256-QfznHc5eKFEbfNeZNbETuf5crLSs6yACweudjtwn0sY="; # build once with empty hash, paste the `got:` value
+    rev = "32e111a";
+    hash = "sha256-QfznHc5eKFEbfNeZNbETuf5crLSs6yACweudjtwn0sY=";
   };
 
   build-system = [ setuptools ];
 
-  # The fork's tests assume some dev fixtures we don't need to ship.
   doCheck = true;
 
-  nativeBuildInputs = [
+  dependencies = [
     pyparsing
   ];
 
@@ -2152,6 +2062,8 @@ import importlib
 PACKAGES = [
     "foamlib",
     "cadquery",
+    "OCP",
+    "pyfluids",
     "multicollections",
     "CoolProp.CoolProp",
 ]
@@ -2464,16 +2376,17 @@ toPythonModule (
 buildPythonPackage rec {
   pname = "foamlib";
   version = "1.5.7";
-  format = "pyproject";
+
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
     hash = "sha256-O2O6IP/ry7sPI66074Ah+qx1deX4V+ieB99+FRyInNw=";
   };
 
-  nativeBuildInputs = [ uv-build ];
+  build-system = [ uv-build ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
     aioshutil
     multicollections
@@ -2496,9 +2409,6 @@ All of my custom NixOS packages.
   buildPythonPackage,
   fetchFromGitHub,
   setuptools,
-  wheel,
-  pythonNamespacesHook,
-  uv-build,
   pyzmq,
   typeguard,
   typing-extensions,
@@ -2517,16 +2427,14 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "Parsl";
     repo = "parsl";
-    rev = "${version}";
+    rev = "refs/tags/${version}";
     hash = "sha256-CDXWx9/KKMr+rON7DbBI6amLwf/2T3ToHDxsL3XoVrU=";
   };
 
-  format = "pyproject";
+  pyproject = true;
+  build-system = [ setuptools ];
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-    uv-build
+  dependencies = [
     pyzmq
     typeguard
     typing-extensions
@@ -2538,23 +2446,6 @@ buildPythonPackage rec {
     setproctitle
     filelock
   ];
-
-  propagatedBuildInputs = [
-    pythonNamespacesHook
-    pyzmq
-    typeguard
-    typing-extensions
-    dill
-    tblib
-    requests
-    sortedcontainers
-    psutil
-    setproctitle
-    filelock
-  ];
-
-  # pythonNamespaces = [
-  # ];
 
   doCheck = true;
 }
@@ -2564,7 +2455,6 @@ buildPythonPackage rec {
 {
   buildPythonPackage,
   fetchPypi,
-  setuptools,
   setuptools-scm,
 }:
 buildPythonPackage rec {
@@ -2575,10 +2465,7 @@ buildPythonPackage rec {
     inherit pname version;
     hash = "sha256-nq40K5pMrMLCxYd4d6LS96K2bGKqGrV9fpXIz9Tt5Qc=";
   };
-  build-system = [ setuptools ];
-  propagatedBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
   doCheck = true;
 }
 
@@ -2596,7 +2483,7 @@ buildPythonPackage rec {
 }:
 let
   tomli_2_3 = tomli.overridePythonAttrs (oldAttrs: rec {
-    version = "2.4.1"; # Or the exact 2.3.x version you want
+    version = "2.4.1";
     src = fetchFromGitHub {
       owner = "hukkin";
       repo = "tomli";
@@ -2618,23 +2505,17 @@ buildPythonPackage rec {
 
   format = "pyproject";
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     wheel
     uv-build
-    coolprop
-    tomli_2_3
   ];
 
-  # This fixes your "not installed" error
-  propagatedBuildInputs = [
+  dependencies = [
     pythonNamespacesHook
     coolprop
     tomli_2_3
   ];
-
-  # pythonNamespaces = [
-  # ];
 
   doCheck = true;
 }
@@ -2793,9 +2674,9 @@ command -v cachix >/dev/null || { echo "need cachix"; exit 1; }
 [[ -n "${CACHIX_AUTH_TOKEN:-}" ]] || [[ -f "$HOME/.config/cachix/cachix.dhall" ]] \
   || { echo "no cachix auth"; exit 1; }
 
-echo ">>> watch-exec building .#all into ${CACHE_NAME}"
-cachix watch-exec "$CACHE_NAME" -- \
-  nix build --no-link --print-out-paths --keep-going ".#all"
+echo ">>> building .#all into ${CACHE_NAME}"
+nix build --no-link --print-out-paths --keep-going ".#all" \
+  | cachix push "$CACHE_NAME"
 echo ">>> done"
 
 

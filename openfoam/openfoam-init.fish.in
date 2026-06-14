@@ -9,12 +9,12 @@ set -l _of_root (dirname (dirname $_of_self))
 set -l _of_prev_path $PATH
 set -l _of_prev_ld $LD_LIBRARY_PATH
 
-source "$_of_root/etc/openfoam-env.fish"
+source "@envCache@"
 
-# Prepend foam-bin AFTER the captured env so we win the override race.
-set -gx PATH "$_of_root/foam-bin" $PATH
+if test -d "$_of_root/foam-bin"
+    set -gx PATH "$_of_root/foam-bin" $PATH
+end
 
-# Mirror the bash version's "prepend, don't replace" behaviour.
 if set -q _of_prev_path[1]
     set -gx PATH $PATH $_of_prev_path
 end
