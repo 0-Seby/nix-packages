@@ -1,4 +1,4 @@
-Packages on  main [+?]
+Packages on  main [✘!] took 12s
 ➜ tree
 .
 ├── aioshutil
@@ -7,7 +7,6 @@ Packages on  main [+?]
 │   └── default.nix
 ├── coolprop
 │   └── default.nix
-├── diff.txt
 ├── flake.lock
 ├── flake.nix
 ├── foamlib
@@ -64,7 +63,7 @@ Packages on  main [+?]
 ├── pyfluids
 │   └── default.nix
 ├── README.md
-├── result -> /nix/store/sdb57rmmhcl1nzsa5f6x57n17dm8k59x-ocp-7.9.3.1
+├── result -> /nix/store/y448rak92grk1jsni5al5xw92gccgbdn-all-my-packages
 ├── scripts
 │   ├── build-all.sh
 │   ├── out.sh
@@ -92,7 +91,9 @@ Packages on  main [+?]
     ├── trame-vuetify.nix
     └── wslink.nix
 
-29 directories, 62 files
+29 directories, 61 files
+
+
 === ./multicollections/default.nix ===
 {
   buildPythonPackage,
@@ -768,235 +769,6 @@ EOF
 esac
 
 
-=== ./diff.txt ===
-diff --git a/aioshutil/default.nix b/aioshutil/default.nix
-new file mode 100644
-index 0000000..bd53145
---- /dev/null
-+++ b/aioshutil/default.nix
-@@ -0,0 +1,20 @@
-+{
-+  buildPythonPackage,
-+  fetchPypi,
-+  setuptools,
-+  setuptools-scm,
-+}:
-+buildPythonPackage rec {
-+  pname = "aioshutil";
-+  version = "1.6";
-+  pyproject = true;
-+  src = fetchPypi {
-+    inherit pname version;
-+    hash = "sha256-nq40K5pMrMLCxYd4d6LS96K2bGKqGrV9fpXIz9Tt5Qc=";
-+  };
-+  build-system = [ setuptools ];
-+  propagatedBuildInputs = [
-+    setuptools-scm
-+  ];
-+  doCheck = true;
-+}
-diff --git a/flake.lock b/flake.lock
-index bbd4b96..709f3d2 100644
---- a/flake.lock
-+++ b/flake.lock
-@@ -2,16 +2,16 @@
-   "nodes": {
-     "nixpkgs": {
-       "locked": {
--        "lastModified": 1779102034,
--        "narHash": "sha256-vZJZjLo513IeI8hjzHFc6TDezUd4uCE2Eq4SNO3DNNg=",
-+        "lastModified": 1780453794,
-+        "narHash": "sha256-bXMRa9VTsHSPXL4Cw8R6JJLQeY3Y/IP4+YJCYVmQ7FY=",
-         "owner": "nixos",
-         "repo": "nixpkgs",
--        "rev": "687f05a9184cad4eaf905c48b63649e3a86f5433",
-+        "rev": "6b316287bae2ee04c9b93c8c858d930fd07d7338",
-         "type": "github"
-       },
-       "original": {
-         "owner": "nixos",
--        "ref": "nixos-25.11",
-+        "ref": "nixos-26.05",
-         "repo": "nixpkgs",
-         "type": "github"
-       }
-diff --git a/flake.nix b/flake.nix
-index 29cf38c..b7ff2f8 100644
---- a/flake.nix
-+++ b/flake.nix
-@@ -6,7 +6,7 @@
-     extra-trusted-public-keys = [ "seby.cachix.org-1:Vych8bxZ7KpUVrz2GELTegGr7th/kdAWHfzVVENyocc=" ];
-   };
- 
--  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
-+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
- 
-   outputs =
-     { self, nixpkgs }:
-@@ -26,6 +26,8 @@
-           customPkgs = {
-             multicollections = pyFinal.callPackage ./multicollections/default.nix { };
- 
-+            aioshutil = pyFinal.callPackage ./aioshutil/default.nix { };
-+
-             foamlib = pyFinal.callPackage ./foamlib/default.nix {
-               multicollections = pyFinal.multicollections;
-             };
-diff --git a/foamlib/default.nix b/foamlib/default.nix
-index d078bdc..db5db04 100644
---- a/foamlib/default.nix
-+++ b/foamlib/default.nix
-@@ -1,4 +1,13 @@
--{ buildPythonPackage, fetchPypi, uv-build, numpy, aioshutil, multicollections, rich, typing-extensions }:
-+{
-+  buildPythonPackage,
-+  fetchPypi,
-+  uv-build,
-+  numpy,
-+  aioshutil,
-+  multicollections,
-+  rich,
-+  typing-extensions,
-+}:
- 
- buildPythonPackage rec {
-   pname = "foamlib";
-@@ -12,8 +21,13 @@ buildPythonPackage rec {
- 
-   nativeBuildInputs = [ uv-build ];
- 
--  # Add the missing runtime dependencies here
--  propagatedBuildInputs = [ numpy aioshutil multicollections rich typing-extensions ];
-+  propagatedBuildInputs = [
-+    numpy
-+    aioshutil
-+    multicollections
-+    rich
-+    typing-extensions
-+  ];
- 
--  doCheck = false;
-+  doCheck = true;
- }
-diff --git a/multicollections/default.nix b/multicollections/default.nix
-index 49af7a1..8f0c195 100644
---- a/multicollections/default.nix
-+++ b/multicollections/default.nix
-@@ -1,17 +1,25 @@
--{ buildPythonPackage, fetchPypi, uv-build }:
-+{
-+  buildPythonPackage,
-+  fetchPypi,
-+  uv-build,
-+}:
- 
- buildPythonPackage rec {
-   pname = "multicollections";
--  version = "1.0.8"; 
--
-+  version = "1.0.8";
-   pyproject = true;
- 
-   src = fetchPypi {
-     inherit pname version;
--    hash = "sha256-qut7LB9KVKUIhnk1BoVpIppn+b4z+pPbwYIiHie2l2o="; 
-+    hash = "sha256-qut7LB9KVKUIhnk1BoVpIppn+b4z+pPbwYIiHie2l2o=";
-   };
- 
-+  postPatch = ''
-+    substituteInPlace pyproject.toml \
-+      --replace-fail 'uv_build>=0.9,<0.10' 'uv_build>=0.9'
-+  '';
-+
-   nativeBuildInputs = [ uv-build ];
- 
--  doCheck = false; 
-+  doCheck = true;
- }
-diff --git a/ocp-generate/default.nix b/ocp-generate/default.nix
-index 29ee778..a441740 100644
---- a/ocp-generate/default.nix
-+++ b/ocp-generate/default.nix
-@@ -13,7 +13,7 @@
-   rapidjson,
-   libxml2, # <-- Added to satisfy VTK's config
-   freetype, # <-- Added to satisfy VTK's config
--  xorg,
-+  libX11,
- }:
- 
- let
-@@ -85,7 +85,7 @@ stdenv.mkDerivation rec {
-     rapidjson
-     libxml2 # Satisfies VTK
-     freetype # Satisfies VTK
--    xorg.libX11
-+    libX11
-   ];
- 
-   cmakeFlags = [
-diff --git a/ocp/default.nix b/ocp/default.nix
-index 7fdee23..0643306 100644
---- a/ocp/default.nix
-+++ b/ocp/default.nix
-@@ -1,5 +1,4 @@
- {
--  stdenv,
-   lib,
-   cmake,
-   ninja,
-@@ -8,14 +7,19 @@
-   opencascade-occt,
-   vtk,
-   pybind11,
--  pybind11-stubgen, # <-- new
-+  pybind11-stubgen,
-   fmt,
-   libGL,
-   libGLU,
--  xorg,
-+  libX11,
-+  libXt,
-   rapidjson,
-   ocp-generate,
-+  gcc14Stdenv,
- }:
-+let
-+  stdenv = gcc14Stdenv; # pinning toolchain due to stricter error tolerance in newer versions ruining build
-+in
- toPythonModule (
-   stdenv.mkDerivation rec {
-     pname = "ocp";
-@@ -40,8 +44,8 @@ toPythonModule (
-       fmt
-       libGL
-       libGLU
--      xorg.libX11
--      xorg.libXt
-+      libX11
-+      libXt
-     ];
- 
-     cmakeFlags = [
-@@ -58,7 +62,7 @@ toPythonModule (
-       "-DPython_ROOT_DIR=${python}"
-       "-DPython_FIND_STRATEGY=LOCATION"
-       "-DPython3_FIND_STRATEGY=LOCATION"
--      "-DCMAKE_CXX_FLAGS=-isystem ${rapidjson}/include"
-+      # "-DCMAKE_CXX_FLAGS=-isystem ${rapidjson}/include"
-     ];
- 
-     enableParallelBuilding = true;
-@@ -111,6 +115,7 @@ toPythonModule (
- 
-     env = {
-       NIX_LDFLAGS = "-lfmt";
-+      NIX_CFLAGS_COMPILE = "-isystem ${rapidjson}/include";
-     };
- 
-     meta = with lib; {
-
-
 === ./lib/nixgl.nix ===
 # lib/nixgl.nix
 #
@@ -1057,6 +829,7 @@ else pkgs.symlinkJoin {
   tcl,
   tk,
   vtk,
+  useVtk ? true,
   libGL,
   libGLU,
   libXext,
@@ -1101,29 +874,19 @@ stdenv.mkDerivation rec {
     tbb
     rapidjson
     glew
-  ];
+  ]
+  ++ lib.optional useVtk vtk;
 
-  #  patches = [
-  #    (fetchpatch {
-  #      url = "https://raw.githubusercontent.com/conda-forge/occt-feedstock/b0960c3ec14c6213fbaef5f1c5d9d8f1d8e7c1ba/recipe/patches/blobfish.patch";
-  #      sha256 = "sha256-wbBPJLO4amPXsIk8Nn9NQv8aypq0ndv/A7OcAfnYqfk=";
-  #    })
-  #    (fetchpatch {
-  #      url = "https://github.com/Open-Cascade-SAS/OCCT/commit/7236e83dcc1e7284e66dc61e612154617ef715d6.patch";
-  #      sha256 = "sha256-NoC2mE3DG78Y0c9UWonx1vmXoU4g5XxFUT3eVXqLU60=";
-  #    })
-  #  ];
-
-  # I've removed the 3RDPARTY_DIR flag, not really sure if it's needed or not
   cmakeFlags = [
     "-D BUILD_MODULE_Draw:BOOL=OFF"
     "-D USE_TBB:BOOL=ON"
     "-D BUILD_RELEASE_DISABLE_EXCEPTIONS=OFF"
-    "-D USE_VTK:BOOL=ON"
-    "-D3RDPARTY_VTK_DIR=${vtk}"
-    #"-D VTK_RENDERING_BACKEND:STRING=\"OpenGL2\""
     "-D USE_FREEIMAGE:BOOL=OFF"
     "-D USE_RAPIDJSON:BOOL=ON"
+  ]
+  ++ lib.optionals useVtk [
+    "-D USE_VTK:BOOL=ON"
+    "-D3RDPARTY_VTK_DIR=${vtk}"
   ];
 
   separateDebugInfo = true;
@@ -1131,7 +894,7 @@ stdenv.mkDerivation rec {
   meta = with lib; {
     description = "Open CASCADE Technology, libraries for 3D modeling and numerical simulation";
     homepage = "https://www.opencascade.org/";
-    license = licenses.lgpl21; 
+    license = licenses.lgpl21;
     # The special exception defined in the file OCCT_LGPL_EXCEPTION.txt
     # are basically about making the license a little less share-alike.
     maintainers = with maintainers; [ marcus7070 ];
@@ -1209,23 +972,21 @@ stdenv.mkDerivation rec {
       # == Main Overlay ==
       overlay = final: prev: {
 
-        vtk-for-occt =
-          (prev.vtk.override {
-            opencascade-occt = null;
-            pythonSupport = false;
-          }).overrideAttrs
-            (old: {
-              postPatch = (old.postPatch or "") + ''
-                rm -rf IO/OCCT
-              '';
-            });
+        opencascade-occt-bootstrap = final.callPackage ./opencascade-occt/default.nix {
+          vtk = null;
+          useVtk = false;
+        };
 
         vtk = prev.vtk.override {
           pythonSupport = true;
+          opencascade-occt = final.opencascade-occt-bootstrap;
+          python3Packages = final.python3.pkgs;
         };
 
+        vtk-for-occt = final.vtk;
+
         opencascade-occt = final.callPackage ./opencascade-occt/default.nix {
-          vtk = final.vtk-for-occt;
+          vtk = final.vtk;
         };
 
         openfoam-core = final.callPackage ./openfoam/core.nix { };
@@ -1238,7 +999,12 @@ stdenv.mkDerivation rec {
         ocp-generate = final.callPackage ./ocp-generate/default.nix { };
 
         python3 = prev.python3.override {
-          packageOverrides = pyFinal: pyPrev: (pythonPackagesOverlay pyFinal pyPrev);
+          packageOverrides =
+            pyFinal: pyPrev:
+            (pythonPackagesOverlay pyFinal pyPrev)
+            // {
+              vtk = final.vtk;
+            };
         };
       };
 
@@ -2385,6 +2151,7 @@ import importlib
 
 PACKAGES = [
     "foamlib",
+    "cadquery",
     "multicollections",
     "CoolProp.CoolProp",
 ]

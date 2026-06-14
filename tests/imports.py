@@ -2,6 +2,7 @@ import importlib
 
 PACKAGES = [
     "foamlib",
+    "cadquery",
     "multicollections",
     "CoolProp.CoolProp",
 ]

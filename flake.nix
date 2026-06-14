@@ -96,7 +96,7 @@
             pyFinal: pyPrev:
             (pythonPackagesOverlay pyFinal pyPrev)
             // {
-              vtk = final.vtk;
+              vtk = pyFinal.toPythonModule final.vtk;
             };
         };
       };
