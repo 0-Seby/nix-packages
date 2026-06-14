@@ -23,17 +23,16 @@ buildPythonPackage rec {
     hash = "sha256-kanJCwy4mYl16+RG1rucAzJvbbbxV7lpVHAJHlfQaAs=";
   };
 
-  format = "pyproject";
+  pyproject = true;
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     wheel
     hatchling
     pythonNamespacesHook
   ];
 
-  # This fixes your "not installed" error
-  propagatedBuildInputs = [
+  dependencies = [
     trame-server
     trame-client
     trame-common

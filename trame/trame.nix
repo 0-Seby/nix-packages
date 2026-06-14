@@ -22,21 +22,20 @@ buildPythonPackage rec {
     hash = "sha256-g3A12JavsmCVleadIphrj6XtokEE0qnZTHiJ0XVCXmc=";
   };
 
-  format = "pyproject";
+  pyproject = true;
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     wheel
+    pythonNamespacesHook
   ];
 
-  # This fixes your "not installed" error
-  propagatedBuildInputs = [
+  dependencies = [
     trame-server
     trame-client
     trame-common
     wslink
     pyyaml
-    pythonNamespacesHook
   ];
 
   pythonNamespaces = [

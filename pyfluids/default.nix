@@ -10,7 +10,7 @@
 }:
 let
   tomli_2_3 = tomli.overridePythonAttrs (oldAttrs: rec {
-    version = "2.4.1"; # Or the exact 2.3.x version you want
+    version = "2.4.1";
     src = fetchFromGitHub {
       owner = "hukkin";
       repo = "tomli";
@@ -32,23 +32,17 @@ buildPythonPackage rec {
 
   format = "pyproject";
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     wheel
     uv-build
-    coolprop
-    tomli_2_3
   ];
 
-  # This fixes your "not installed" error
-  propagatedBuildInputs = [
+  dependencies = [
     pythonNamespacesHook
     coolprop
     tomli_2_3
   ];
-
-  # pythonNamespaces = [
-  # ];
 
   doCheck = true;
 }

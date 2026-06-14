@@ -1,7 +1,6 @@
 {
   buildPythonPackage,
   fetchPypi,
-  setuptools,
   setuptools-scm,
 }:
 buildPythonPackage rec {
@@ -12,9 +11,6 @@ buildPythonPackage rec {
     inherit pname version;
     hash = "sha256-nq40K5pMrMLCxYd4d6LS96K2bGKqGrV9fpXIz9Tt5Qc=";
   };
-  build-system = [ setuptools ];
-  propagatedBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
   doCheck = true;
 }

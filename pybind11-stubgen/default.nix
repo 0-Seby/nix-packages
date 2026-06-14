@@ -8,23 +8,22 @@
 
 buildPythonPackage rec {
   pname = "pybind11-stubgen";
-  version = "unstable-2025-12-19"; # match last commit date you pin
+  version = "unstable-2025-12-19";
 
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "CadQuery";
     repo = "pybind11-stubgen";
-    rev = "32e111a"; # <-- replace with the commit hash from CadQuery/pybind11-stubgen
-    hash = "sha256-QfznHc5eKFEbfNeZNbETuf5crLSs6yACweudjtwn0sY="; # build once with empty hash, paste the `got:` value
+    rev = "32e111a";
+    hash = "sha256-QfznHc5eKFEbfNeZNbETuf5crLSs6yACweudjtwn0sY=";
   };
 
   build-system = [ setuptools ];
 
-  # The fork's tests assume some dev fixtures we don't need to ship.
   doCheck = true;
 
-  nativeBuildInputs = [
+  dependencies = [
     pyparsing
   ];
 

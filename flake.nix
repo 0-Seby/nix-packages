@@ -65,6 +65,17 @@
       # == Main Overlay ==
       overlay = final: prev: {
 
+        # === VTK <-> OpenCASCADE cycle break ==========================================
+        # Genuine circular dependency:
+        #   * VTK wants OCCT  -> IOOCCT (read STEP/IGES), needed for OCP to build.
+        #   * OCCT wants VTK  -> IVtk  (render OCCT shapes), needed by cadquery/OCP viz.
+        # Resolved by building OCCT twice (OCCT is the cheaper half):
+        #   1. occt-bootstrap : OCCT with NO vtk          (breaks the knot)
+        #   2. vtk            : VTK built against #1       (gains IOOCCT)
+        #   3. opencascade-occt: OCCT built against #2     (gains IVtk; the "real" one)
+        # Everything downstream (ocp, cadquery) uses #3 + #2. As a result OCP's closure
+        # contains both OCCTs (full directly, bootstrap via VTK). This is expected.
+        # DO NOT make vtk depend on opencascade-occt (#3) — that recreates the cycle.
         opencascade-occt-bootstrap = final.callPackage ./opencascade-occt/default.nix {
           vtk = null;
           useVtk = false;
@@ -79,6 +90,7 @@
         opencascade-occt = final.callPackage ./opencascade-occt/default.nix {
           vtk = final.vtk;
         };
+        # ==============================================================================
 
         openfoam-core = final.callPackage ./openfoam/core.nix { };
         mkFoamPlugin = final.callPackage ./openfoam/mk-foam-plugin.nix { };
@@ -94,6 +106,11 @@
             pyFinal: pyPrev:
             (pythonPackagesOverlay pyFinal pyPrev)
             // {
+              # final.vtk reads final.python3.pkgs, and this set re-injects vtk.
+              # Safe only because vtk's python3Packages arg is never forced while
+              # constructing this attr. toPythonModule binds pythonModule to THIS
+              # set's interpreter so withPackages keeps vtkmodules on PYTHONPATH.
+              # Keep it as `pyFinal.toPythonModule final.vtk` — don't rebuild vtk here.
               vtk = pyFinal.toPythonModule final.vtk;
             };
         };

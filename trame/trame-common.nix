@@ -20,17 +20,16 @@ buildPythonPackage rec {
     hash = "sha256-sqyEiMeuG0vA0ZaHmQiedAXx3HT/bfiN/JIOeNq+N2Q=";
   };
 
-  format = "pyproject";
+  pyproject = true;
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     wheel
     hatchling
     pythonNamespacesHook
   ];
 
-  # This fixes your "not installed" error
-  propagatedBuildInputs = [
+  dependencies = [
     wslink
     pyyaml
   ];

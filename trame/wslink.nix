@@ -1,8 +1,6 @@
 {
   buildPythonPackage,
   fetchFromGitHub,
-  setuptools,
-  wheel,
   tornado,
   six,
   hatchling,
@@ -21,17 +19,18 @@ buildPythonPackage rec {
     hash = "sha256-47vHc+b5Z3ipkLZ5k0yEasNaKz0Seu2jiGBVmAI5u6U="; # Run nix build to get the real hash
   };
 
-  format = "pyproject";
-  nativeBuildInputs = [
-    setuptools
-    wheel
+  pyproject = true;
+
+  build-system = [
     hatchling
+  ];
+
+  dependencies = [
+    tornado
+    six
     aiohttp
     msgpack
   ];
-  propagatedBuildInputs = [
-    tornado
-    six
-  ];
+
   doCheck = false;
 }

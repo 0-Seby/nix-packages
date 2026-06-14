@@ -2,9 +2,6 @@
   buildPythonPackage,
   fetchFromGitHub,
   setuptools,
-  wheel,
-  pythonNamespacesHook,
-  uv-build,
   pyzmq,
   typeguard,
   typing-extensions,
@@ -23,16 +20,14 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "Parsl";
     repo = "parsl";
-    rev = "${version}";
+    rev = "refs/tags/${version}";
     hash = "sha256-CDXWx9/KKMr+rON7DbBI6amLwf/2T3ToHDxsL3XoVrU=";
   };
 
-  format = "pyproject";
+  pyproject = true;
+  build-system = [ setuptools ];
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-    uv-build
+  dependencies = [
     pyzmq
     typeguard
     typing-extensions
@@ -44,23 +39,6 @@ buildPythonPackage rec {
     setproctitle
     filelock
   ];
-
-  propagatedBuildInputs = [
-    pythonNamespacesHook
-    pyzmq
-    typeguard
-    typing-extensions
-    dill
-    tblib
-    requests
-    sortedcontainers
-    psutil
-    setproctitle
-    filelock
-  ];
-
-  # pythonNamespaces = [
-  # ];
 
   doCheck = true;
 }

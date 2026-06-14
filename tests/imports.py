@@ -3,6 +3,8 @@ import importlib
 PACKAGES = [
     "foamlib",
     "cadquery",
+    "OCP",
+    "pyfluids",
     "multicollections",
     "CoolProp.CoolProp",
 ]
