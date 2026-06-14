@@ -76,8 +76,6 @@
           python3Packages = final.python3.pkgs;
         };
 
-        vtk-for-occt = final.vtk;
-
         opencascade-occt = final.callPackage ./opencascade-occt/default.nix {
           vtk = final.vtk;
         };
@@ -169,7 +167,6 @@
               opencascade-occt
               ocp-generate
               vtk
-              vtk-for-occt
               ;
             bartz = pkgs.foamPlugins.bartz;
           }
