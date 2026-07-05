@@ -7,6 +7,8 @@ PACKAGES = [
     "pyfluids",
     "multicollections",
     "CoolProp.CoolProp",
+    "build123d",
+    "ocp_vscode"
 ]
 
 def main():

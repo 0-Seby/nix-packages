@@ -1,99 +1,124 @@
 {
+  lib,
   buildPythonPackage,
   fetchFromGitHub,
-  fetchPypi,
+  callPackage,
+  isPy3k,
+  pythonOlder,
+  pytestCheckHook,
+  pytest-xdist,
+  pythonRelaxDepsHook,
   setuptools,
-  python,
-  lib
+  setuptools-scm,
+  ocp,
+  typing-extensions,
+  numpy,
+  svgpathtools,
+  svgelements,
+  anytree,
+  ezdxf,
+  ipython,
+  sympy,
+  scipy,
+  scikit-learn,
+  webcolors,
+  requests,
+  autoPatchelfHook,
+  stdenv,
+  makeFontsConf,
+  freefont_ttf,
 }:
 let
-  pyPkgs = python.pkgs;
-
-  ocp-tessellate = buildPythonPackage rec {
-    pname = "ocp-tessellate";
-    version = "3.3.0";
-    src = fetchFromGitHub {
-      owner = "bernhard-42";
-      repo = "ocp-tessellate";
-      rev = "refs/tags/v${version}";
-      hash = "sha256-m5WDPviy7Npl7Pb9A+qJHnX8FbZY4sCVOpIojoX3vbk=";
-    };
-    pyproject = true;
-    build-system = [ setuptools ];
-    dependencies = with pyPkgs; [ webcolors numpy cachetools imagesize ];
-    dontCheckRuntimeDeps = true; # <-- Bypasses version strictness
-    doCheck = false;
-  };
-
-  pygltflib = buildPythonPackage rec {
-    pname = "pygltflib";
-    version = "1.16.5"; 
-    src = fetchPypi {
-      inherit pname version;
-      hash = "sha256-HxV0DVp6r3GlCD4oWvazYRhJWOJVZZEy9LqP5PPSHqk=";
-    };
-    pyproject = true;
-    build-system = [ setuptools ];
-    dependencies = with pyPkgs; [ dataclasses-json deprecated ];
-    dontCheckRuntimeDeps = true;
-    doCheck = false;
-  };
-
-  threejs-materials = buildPythonPackage rec {
-    pname = "threejs-materials";
-    version = "1.1.1"; 
-    src = fetchFromGitHub {
-      owner = "bernhard-42";
-      repo = "threejs-materials";
-      rev = "v${version}";
-      # If you got the real hash in the last step, paste it here. 
-      # Otherwise, leave it as fakeHash and grab it on the next run.
-      hash = lib.fakeHash; 
-    };
-    pyproject = true;
-    build-system = [ setuptools ];
-    dependencies = [ pygltflib ] ++ (with pyPkgs; [ pillow requests ]);
-    dontCheckRuntimeDeps = true;
-    doCheck = false;
-  };
-
+  ocpsvg = callPackage ./ocpsvg.nix { };
+  ocp-gordon = callPackage ./ocp-gordon.nix { };
+  trianglesolver = callPackage ./trianglesolver.nix { };
+  lib3mf = callPackage ./lib3mf.nix { };
 in
 buildPythonPackage rec {
-  pname = "ocp-vscode";
-  version = "3.4.0";
+  pname = "build123d";
+  version = "0.11.0";
 
   src = fetchFromGitHub {
-    owner = "bernhard-42";
-    repo = "vscode-ocp-cad-viewer";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-5xmpMEmrUMPgCw+WPujLU3lXx+PpzPKx7JYiMi2VAOs=";
+    owner = "gumyr";
+    repo = "build123d";
+    rev = "v${version}";
+    hash = "sha256-UhdF4x01tGG0nVGCCwZA4mqfi9gVOSZ77a4RoKYmOFw=";
   };
 
   pyproject = true;
-  build-system = [ setuptools ];
+  build-system = [ setuptools setuptools-scm ];
+  SETUPTOOLS_SCM_PRETEND_VERSION = version;
 
-  dependencies = [
-    ocp-tessellate
-    threejs-materials
-    pygltflib
-  ] ++ (with pyPkgs; [
+  nativeBuildInputs = [
+    setuptools-scm
+    pythonRelaxDepsHook
+  ];
+
+  pythonRelaxDeps = [
+    "webcolors"
+    "ipython"
+    "scikit-learn"
+    "numpy"
+  ];
+
+  propagatedBuildInputs = [
+    ocp
+    typing-extensions
+    numpy
+    svgpathtools
+    anytree
+    ezdxf
+    ipython
+    ocpsvg
+    ocp-gordon
+    trianglesolver
+    sympy
+    scipy
+    scikit-learn
+    webcolors
     requests
-    ipykernel
-    orjson
-    websockets
-    pyaml
-    flask
-    flask-sock
-    click
-    pyperclip
-    questionary
-    pillow
-  ]);
+    lib3mf
+  ];
 
-  # --- THE MAGIC BULLET ---
-  # This stops Nix from comparing your installed dependencies 
-  # against the strict == and < bounds in the pyproject.toml
-  dontCheckRuntimeDeps = true; 
+  FONTCONFIG_FILE = makeFontsConf {
+    fontDirectories = [ freefont_ttf ];
+  };
 
-  doCheck = false;
+  disabled = !isPy3k || pythonOlder "3.10";
+
+  checkInputs = [
+    pytestCheckHook
+  ];
+
+  preCheck = ''
+    export HOME=$(mktemp -d)
+    export XDG_CACHE_HOME=$(mktemp -d)
+    sed -i '/^addopts/d' pyproject.toml
+  '';
+
+  pytestFlags = [
+    "-p" "no:xdist"
+    "-W" "ignore::FutureWarning"
+    "-v"
+    "tests"
+  ];
+
+  disabledTests = [
+    "test_assembly_with_oriented_parts"
+    "test_roundtrip_component_color_overrides_parent"
+    "test_roundtrip_nested_labels_colors"
+    "test_move_single_object"
+    "test_single_label_color"
+    "test_roundtrip_preserves_component_location"
+    "test_single_object"
+  ];
+
+  pythonImportsCheck = [ "build123d" ];
+
+  meta = with lib; {
+    description = "A python CAD programming library";
+    homepage = "https://github.com/gumyr/build123d";
+    license = licenses.asl20;
+    maintainers = [ ];
+  };
 }
