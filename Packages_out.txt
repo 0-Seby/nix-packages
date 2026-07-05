@@ -1,3 +1,113 @@
+Packages on  main [!] took 19s
+➜ treee
+fish: Unknown command: treee
+Packages on  main [!]
+✗ tree
+.
+├── aioshutil
+│   └── default.nix
+├── build123d
+│   ├── default.nix
+│   ├── lib3mf.nix
+│   ├── ocp-gordon.nix
+│   ├── ocpsvg.nix
+│   └── trianglesolver.nix
+├── cadquery
+│   └── default.nix
+├── coolprop
+│   └── default.nix
+├── flake.lock
+├── flake.nix
+├── foamlib
+│   └── default.nix
+├── lib
+│   └── nixgl.nix
+├── multicollections
+│   └── default.nix
+├── ocp
+│   └── default.nix
+├── ocp-generate
+│   ├── default.nix
+│   └── fix-libclang.patch
+├── ocp-vscode
+│   ├── default.nix
+│   ├── ocp-tessellate.nix
+│   ├── pygltflib.nix
+│   └── threejs-materials.nix
+├── opencascade-occt
+│   └── default.nix
+├── openfoam
+│   ├── capture-env.sh
+│   ├── core.nix
+│   ├── default.nix
+│   ├── generate-fish-env.sh
+│   ├── install-symlinks.sh
+│   ├── mk-foam-plugin.nix
+│   ├── openfoam-init.fish.in
+│   ├── openfoam-init.in
+│   └── openfoam-shell.in
+├── openfoam-plugins
+│   └── bartz
+│       ├── default.nix
+│       └── src
+│           ├── bartz
+│           │   ├── bartz.C
+│           │   ├── bartz.H
+│           │   └── spline.hpp
+│           ├── compile_commands.json
+│           ├── lnInclude
+│           │   ├── bartz.C -> ../bartz/bartz.C
+│           │   ├── bartz.H -> ../bartz/bartz.H
+│           │   └── spline.hpp -> ../bartz/spline.hpp
+│           └── Make
+│               ├── files
+│               ├── linux64GccDPInt32Opt
+│               │   ├── bartz
+│               │   │   ├── bartz.C.dep
+│               │   │   └── bartz.o
+│               │   └── files
+│               └── options
+├── Packages_out.txt
+├── parsl
+│   └── default.nix
+├── pybind11-2
+│   └── default.nix
+├── pybind11-stubgen
+│   └── default.nix
+├── pyfluids
+│   └── default.nix
+├── README.md
+├── result -> /nix/store/g0mhlx503h8p2g9vz562vlwnz3hf7zrf-all-my-packages
+├── scripts
+│   ├── build-all.sh
+│   ├── out.sh
+│   ├── push-to-cachix.sh
+│   └── verify-cache.sh
+├── tests
+│   ├── imports.py
+│   ├── __pycache__
+│   │   ├── foamlib.cpython-313.pyc
+│   │   └── multicollections.cpython-313.pyc
+│   ├── test_cadquery.py
+│   ├── test_coolprop.py
+│   ├── test_foamlib.py
+│   ├── test_multicollections.py
+│   ├── test_ocp.py
+│   └── test_pyfluids.py
+└── trame
+    ├── result -> /nix/store/1gl5ijdpls94cl48sbr3bwnr2ix4hvla-python3.13-trame-2.5.0
+    ├── trame-client.nix
+    ├── trame-common.nix
+    ├── trame-components.nix
+    ├── trame.nix
+    ├── trame-server.nix
+    ├── trame-vtk.nix
+    ├── trame-vuetify.nix
+    └── wslink.nix
+
+31 directories, 70 files
+
+
 === ./multicollections/default.nix ===
 {
   buildPythonPackage,
@@ -26,6 +136,261 @@ buildPythonPackage rec {
 }
 
 
+=== ./build123d/trianglesolver.nix ===
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+}:
+buildPythonPackage rec {
+  pname = "trianglesolver";
+  version = "1.2";
+  format = "wheel";
+
+  src = fetchPypi {
+    inherit pname version format;
+    dist = "py3";
+    python = "py3";
+    abi = "none";
+    platform = "any";
+    hash = "sha256-qgkDw3CLTitJbwbUkMrnLG/2J0sA0e3OQg/Po7K3ZoI=";
+  };
+
+  doCheck = true;
+
+  meta = with lib; {
+    description = "Solves triangles given some sides and angles";
+    homepage = "https://github.com/sbyrnes321/trianglesolver";
+    license = licenses.mit;
+  };
+}
+
+
+=== ./build123d/ocpsvg.nix ===
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  setuptools-scm,
+  ocp,
+  svgelements,
+}:
+buildPythonPackage rec {
+  pname = "ocpsvg";
+  version = "0.6.0";
+
+  src = fetchPypi {
+    inherit pname version;
+    hash = "sha256-8I2kNHzJDs01ZTlem9pXRtRquKr9aiaBuwOpwyG1QDk=";
+  };
+
+  pyproject = true;
+  build-system = [ setuptools setuptools-scm ];
+  propagatedBuildInputs = [ ocp svgelements ];
+  doCheck = false;
+
+  meta = with lib; {
+    description = "SVG import/export at the OCP level";
+    homepage = "https://github.com/snoyer/ocpsvg";
+    license = licenses.mit;
+  };
+}
+
+
+=== ./build123d/default.nix ===
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  callPackage,
+  isPy3k,
+  pythonOlder,
+  pytestCheckHook,
+  pytest-xdist,
+  pythonRelaxDepsHook,
+  setuptools,
+  setuptools-scm,
+  ocp,
+  typing-extensions,
+  numpy,
+  svgpathtools,
+  svgelements,
+  anytree,
+  ezdxf,
+  ipython,
+  sympy,
+  scipy,
+  scikit-learn,
+  webcolors,
+  requests,
+  autoPatchelfHook,
+  stdenv,
+  makeFontsConf,
+  freefont_ttf,
+}:
+let
+  ocpsvg = callPackage ./ocpsvg.nix { };
+  ocp-gordon = callPackage ./ocp-gordon.nix { };
+  trianglesolver = callPackage ./trianglesolver.nix { };
+  lib3mf = callPackage ./lib3mf.nix { };
+in
+buildPythonPackage rec {
+  pname = "build123d";
+  version = "0.11.0";
+
+  src = fetchFromGitHub {
+    owner = "gumyr";
+    repo = "build123d";
+    rev = "v${version}";
+    hash = "sha256-UhdF4x01tGG0nVGCCwZA4mqfi9gVOSZ77a4RoKYmOFw=";
+  };
+
+  pyproject = true;
+  build-system = [ setuptools setuptools-scm ];
+  SETUPTOOLS_SCM_PRETEND_VERSION = version;
+
+  nativeBuildInputs = [
+    setuptools-scm
+    pythonRelaxDepsHook
+  ];
+
+  pythonRelaxDeps = [
+    "webcolors"
+    "ipython"
+    "scikit-learn"
+    "numpy"
+  ];
+
+  propagatedBuildInputs = [
+    ocp
+    typing-extensions
+    numpy
+    svgpathtools
+    anytree
+    ezdxf
+    ipython
+    ocpsvg
+    ocp-gordon
+    trianglesolver
+    sympy
+    scipy
+    scikit-learn
+    webcolors
+    requests
+    lib3mf
+  ];
+
+  FONTCONFIG_FILE = makeFontsConf {
+    fontDirectories = [ freefont_ttf ];
+  };
+
+  disabled = !isPy3k || pythonOlder "3.10";
+
+  checkInputs = [
+    pytestCheckHook
+  ];
+
+  preCheck = ''
+    export HOME=$(mktemp -d)
+    export XDG_CACHE_HOME=$(mktemp -d)
+    sed -i '/^addopts/d' pyproject.toml
+  '';
+
+  pytestFlags = [
+    "-p" "no:xdist"
+    "-W" "ignore::FutureWarning"
+    "-v"
+    "tests"
+  ];
+
+  disabledTests = [
+    "test_assembly_with_oriented_parts"
+    "test_roundtrip_component_color_overrides_parent"
+    "test_roundtrip_nested_labels_colors"
+    "test_move_single_object"
+    "test_single_label_color"
+    "test_roundtrip_preserves_component_location"
+    "test_single_object"
+  ];
+
+  pythonImportsCheck = [ "build123d" ];
+
+  meta = with lib; {
+    description = "A python CAD programming library";
+    homepage = "https://github.com/gumyr/build123d";
+    license = licenses.asl20;
+    maintainers = [ ];
+  };
+}
+
+=== ./build123d/ocp-gordon.nix ===
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  setuptools-scm,
+  ocp,
+  numpy,
+  scipy,
+}:
+buildPythonPackage rec {
+  pname = "ocp_gordon";
+  version = "0.2.0";
+
+  src = fetchPypi {
+    inherit pname version;
+    hash = "sha256-POHx+1ieiRU00MH9dVOlGHMzNjCIN8S15RZNd98c9ck=";
+  };
+
+  pyproject = true;
+  build-system = [ setuptools setuptools-scm ];
+  propagatedBuildInputs = [ ocp numpy scipy ];
+  doCheck = false;
+
+  meta = with lib; {
+    description = "Gordon Surface interpolation using B-splines for OCP";
+    homepage = "https://github.com/gongfan99/ocp_gordon";
+    license = licenses.asl20;
+  };
+}
+
+
+=== ./build123d/lib3mf.nix ===
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  autoPatchelfHook,
+  stdenv,
+}:
+buildPythonPackage rec {
+  pname = "lib3mf";
+  version = "2.5.0";
+  format = "wheel";
+
+  src = fetchPypi {
+    inherit pname version format;
+    dist = "py3";
+    python = "py3";
+    abi = "none";
+    platform = "manylinux2014_x86_64";
+    hash = "sha256-tMAAM8R8/qyTt9qgaftG6N6kOR1VIrec1un2r3XjMBM=";
+  };
+
+  nativeBuildInputs = lib.optionals stdenv.isLinux [ autoPatchelfHook ];
+  doCheck = false;
+
+  meta = with lib; {
+    description = "Python bindings for lib3mf (3MF file format)";
+    homepage = "https://github.com/3MFConsortium/lib3mf";
+    license = licenses.bsd2;
+    platforms = [ "x86_64-linux" ];
+  };
+}
+
+
 === ./openfoam/openfoam-init.fish.in ===
 # Fast OpenFOAM environment loader for fish.
 # See openfoam-init for the rationale; same idea in fish syntax.
@@ -38,12 +403,12 @@ set -l _of_root (dirname (dirname $_of_self))
 set -l _of_prev_path $PATH
 set -l _of_prev_ld $LD_LIBRARY_PATH
 
-source "$_of_root/etc/openfoam-env.fish"
+source "@envCache@"
 
-# Prepend foam-bin AFTER the captured env so we win the override race.
-set -gx PATH "$_of_root/foam-bin" $PATH
+if test -d "$_of_root/foam-bin"
+    set -gx PATH "$_of_root/foam-bin" $PATH
+end
 
-# Mirror the bash version's "prepend, don't replace" behaviour.
 if set -q _of_prev_path[1]
     set -gx PATH $PATH $_of_prev_path
 end
@@ -76,11 +441,18 @@ _of_root="$(dirname "$(dirname "$_of_self")")"
 _of_prev_path="${PATH-}"
 _of_prev_ld="${LD_LIBRARY_PATH-}"
 
-source "$_of_root/etc/openfoam-env.sh"
+# Captured env lives at a fixed store path (baked at build time). This is
+# found even through a NixOS profile that doesn't link our etc/ dir, and it's
+# identical across the base/withPackages/nixGL variants so baking it is safe.
+source "@envCache@"
 
-# Prepend our foam-bin so tools become available. Done AFTER sourcing
-# the captured env so this wins regardless of what the env put on PATH.
-export PATH="$_of_root/foam-bin:$PATH"
+# foam-bin stays RELATIVE to how we were invoked (unresolved), so the nixGL
+# symlinkJoin's wrapped GUI bins win over the core copies the env put on PATH.
+# If a restrictive profile didn't link it, skip it -- on NixOS nixGL is a
+# no-op, so the core GUI bins already on PATH are correct anyway.
+if [ -d "$_of_root/foam-bin" ]; then
+    export PATH="$_of_root/foam-bin:$PATH"
+fi
 
 [ -n "$_of_prev_path" ] && export PATH="$PATH:$_of_prev_path"
 if [ -n "$_of_prev_ld" ]; then
@@ -555,9 +927,13 @@ let
           ln -s "$f" "$out/bin/$name"
         done
 
-        # Same relocatable scripts + appended plugin lines.
-        cat ${./openfoam-init.in}      ${fragBash} > $out/bin/openfoam-init
-        cat ${./openfoam-init.fish.in} ${fragFish} > $out/bin/openfoam-init.fish
+        substitute ${./openfoam-init.in} $out/bin/openfoam-init \
+          --subst-var-by envCache "${base}/etc/openfoam-env.sh"
+        cat ${fragBash} >> $out/bin/openfoam-init
+
+        substitute ${./openfoam-init.fish.in} $out/bin/openfoam-init.fish \
+          --subst-var-by envCache "${base}/etc/openfoam-env.fish"
+        cat ${fragFish} >> $out/bin/openfoam-init.fish
 
         runHook postInstall
       '';
@@ -603,8 +979,10 @@ let
         replaceVars ./generate-fish-env.sh { sed = "${gnused}/bin/sed"; }
       }
 
-      cp ${./openfoam-init.in}      $out/bin/openfoam-init
-      cp ${./openfoam-init.fish.in} $out/bin/openfoam-init.fish
+      substitute ${./openfoam-init.in}      $out/bin/openfoam-init \
+        --subst-var-by envCache "$out/etc/openfoam-env.sh"
+      substitute ${./openfoam-init.fish.in} $out/bin/openfoam-init.fish \
+        --subst-var-by envCache "$out/etc/openfoam-env.fish"
 
       substitute ${./openfoam-shell.in} $out/bin/openfoam-shell \
         --subst-var-by bash ${bash}/bin/bash
@@ -854,6 +1232,10 @@ stdenv.mkDerivation rec {
             };
             cadquery = pyFinal.callPackage ./cadquery/default.nix { };
 
+            build123d = pyFinal.callPackage ./build123d/default.nix { };
+
+            ocp-vscode = pyFinal.callPackage ./ocp-vscode/default.nix { };
+
             wslink = pyFinal.callPackage ./trame/wslink.nix { };
 
             trame-common = pyFinal.callPackage ./trame/trame-common.nix { };
@@ -1074,6 +1456,162 @@ stdenv.mkDerivation rec {
         }
       );
     };
+}
+
+
+=== ./ocp-vscode/threejs-materials.nix ===
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pygltflib,
+  pillow,
+  requests
+}:
+buildPythonPackage rec {
+  pname = "threejs-materials";
+  version = "1.1.1"; 
+  
+  src = fetchFromGitHub {
+    owner = "bernhard-42";
+    repo = "threejs-materials";
+    rev = "v${version}";
+    hash = "sha256-x9r/11uD5uh2MpkOQchTbOyJ1qP7Gsme57XM+AxXH90="; 
+  };
+  
+  pyproject = true;
+  build-system = [ setuptools ];
+  
+  dependencies = [ 
+    pygltflib 
+    pillow 
+    requests 
+  ];
+  
+  dontCheckRuntimeDeps = true;
+  doCheck = false;
+}
+
+
+=== ./ocp-vscode/ocp-tessellate.nix ===
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  webcolors,
+  numpy,
+  cachetools,
+  imagesize
+}:
+buildPythonPackage rec {
+  pname = "ocp-tessellate";
+  version = "3.3.0";
+  
+  src = fetchFromGitHub {
+    owner = "bernhard-42";
+    repo = "ocp-tessellate";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-m5WDPviy7Npl7Pb9A+qJHnX8FbZY4sCVOpIojoX3vbk=";
+  };
+  
+  pyproject = true;
+  build-system = [ setuptools ];
+  
+  dependencies = [ 
+    webcolors 
+    numpy 
+    cachetools 
+    imagesize 
+  ];
+  
+  dontCheckRuntimeDeps = true;
+  doCheck = false;
+}
+
+=== ./ocp-vscode/pygltflib.nix ===
+{
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  dataclasses-json,
+  deprecated
+}:
+buildPythonPackage rec {
+  pname = "pygltflib";
+  version = "1.16.5"; 
+  
+  src = fetchPypi {
+    inherit pname version;
+    hash = "sha256-HxV0DVp6r3GlCD4oWvazYRhJWOJVZZEy9LqP5PPSHqk=";
+  };
+  
+  pyproject = true;
+  build-system = [ setuptools ];
+  
+  dependencies = [ 
+    dataclasses-json 
+    deprecated 
+  ];
+  
+  dontCheckRuntimeDeps = true;
+  doCheck = false;
+}
+
+=== ./ocp-vscode/default.nix ===
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchPypi,
+  setuptools,
+  python,
+  lib
+}:
+let
+  pyPkgs = python.pkgs;
+
+  ocp-tessellate = pyPkgs.callPackage ./ocp-tessellate.nix { };
+  
+  pygltflib = pyPkgs.callPackage ./pygltflib.nix { };
+  
+  threejs-materials = pyPkgs.callPackage ./threejs-materials.nix {
+    inherit pygltflib; # Inject our custom pygltflib into this package
+  };
+in
+buildPythonPackage rec {
+  pname = "ocp-vscode";
+  version = "3.4.0";
+
+  src = fetchFromGitHub {
+    owner = "bernhard-42";
+    repo = "vscode-ocp-cad-viewer";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-5xmpMEmrUMPgCw+WPujLU3lXx+PpzPKx7JYiMi2VAOs=";
+  };
+
+  pyproject = true;
+  build-system = [ setuptools ];
+
+  dependencies = [
+    ocp-tessellate 
+    threejs-materials
+    pygltflib
+  ] ++ (with pyPkgs; [
+    requests
+    ipykernel
+    orjson
+    websockets
+    pyaml
+    flask
+    flask-sock
+    click
+    pyperclip
+    questionary
+    pillow
+  ]);
+
+  dontCheckRuntimeDeps = true; 
+
+  doCheck = false;
 }
 
 
@@ -2066,6 +2604,8 @@ PACKAGES = [
     "pyfluids",
     "multicollections",
     "CoolProp.CoolProp",
+    "build123d",
+    "ocp_vscode"
 ]
 
 def main():
@@ -2336,14 +2876,18 @@ toPythonModule (
       touch $out/${python.sitePackages}/OCP-stubs/py.typed
 
       # Existing dist-info metadata
-      DIST_INFO="$out/${python.sitePackages}/cadquery_ocp-${version}.dist-info"
-      mkdir -p "$DIST_INFO"
-      cat > "$DIST_INFO/METADATA" <<EOF
+      for dist_name in cadquery-ocp cadquery-ocp-novtk cadquery-ocp-proxy; do
+        safe_name=$(echo "$dist_name" | tr '-' '_')
+        dist_dir="$out/${python.sitePackages}/$safe_name-${version}.dist-info"
+        mkdir -p "$dist_dir"
+        cat > "$dist_dir/METADATA" <<EOF
       Metadata-Version: 2.1
-      Name: cadquery-ocp
+      Name: $dist_name
       Version: ${version}
       Summary: Python bindings for OpenCASCADE Technology (OCCT)
       EOF
+        touch "$dist_dir/RECORD"
+      done
     '';
 
     env = {

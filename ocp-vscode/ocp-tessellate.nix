@@ -14,8 +14,9 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "bernhard-42";
     repo = "ocp-tessellate";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-m5WDPviy7Npl7Pb9A+qJHnX8FbZY4sCVOpIojoX3vbk=";
+    # Instead of tags, use the specific commit hash
+    rev = "b01e69cba3a3a2f1e78020b41718b78ac4b9047"; 
+    hash = "sha256-MBhFeiZ6z630KdBkMS14ydWCA7uNY6e1wr+Va/tgw1E=";
   };
   
   pyproject = true;
@@ -29,5 +30,5 @@ buildPythonPackage rec {
   ];
   
   dontCheckRuntimeDeps = true;
-  doCheck = false;
+  doCheck = true;
 }
