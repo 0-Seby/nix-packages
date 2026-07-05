@@ -43,6 +43,8 @@
             };
             cadquery = pyFinal.callPackage ./cadquery/default.nix { };
 
+            build123d = pyFinal.callPackage ./build123d/default.nix { };
+
             wslink = pyFinal.callPackage ./trame/wslink.nix { };
 
             trame-common = pyFinal.callPackage ./trame/trame-common.nix { };

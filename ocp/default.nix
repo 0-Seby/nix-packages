@@ -104,14 +104,18 @@ toPythonModule (
       touch $out/${python.sitePackages}/OCP-stubs/py.typed
 
       # Existing dist-info metadata
-      DIST_INFO="$out/${python.sitePackages}/cadquery_ocp-${version}.dist-info"
-      mkdir -p "$DIST_INFO"
-      cat > "$DIST_INFO/METADATA" <<EOF
+      for dist_name in cadquery-ocp cadquery-ocp-novtk cadquery-ocp-proxy; do
+        safe_name=$(echo "$dist_name" | tr '-' '_')
+        dist_dir="$out/${python.sitePackages}/$safe_name-${version}.dist-info"
+        mkdir -p "$dist_dir"
+        cat > "$dist_dir/METADATA" <<EOF
       Metadata-Version: 2.1
-      Name: cadquery-ocp
+      Name: $dist_name
       Version: ${version}
       Summary: Python bindings for OpenCASCADE Technology (OCCT)
       EOF
+        touch "$dist_dir/RECORD"
+      done
     '';
 
     env = {
