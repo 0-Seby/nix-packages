@@ -45,6 +45,8 @@
 
             build123d = pyFinal.callPackage ./build123d/default.nix { };
 
+            ocp-vscode = pyFinal.callPackage ./ocp-vscode/default.nix { };
+
             wslink = pyFinal.callPackage ./trame/wslink.nix { };
 
             trame-common = pyFinal.callPackage ./trame/trame-common.nix { };

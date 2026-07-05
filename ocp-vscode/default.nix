@@ -48,7 +48,7 @@ let
       rev = "v${version}";
       # If you got the real hash in the last step, paste it here. 
       # Otherwise, leave it as fakeHash and grab it on the next run.
-      hash = lib.fakeHash; 
+      hash = "sha256-x9r/11uD5uh2MpkOQchTbOyJ1qP7Gsme57XM+AxXH90="; 
     };
     pyproject = true;
     build-system = [ setuptools ];
